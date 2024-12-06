@@ -1,0 +1,7 @@
+alembic==1.12.1
+flask==2.1.2
+PyMySQL
+requests==2.32.3
+sqlalchemy_serializer==1.4.1
+sqlalchemy==2.0.19
+werkzeug==2.3.6

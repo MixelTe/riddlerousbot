@@ -1,0 +1,8 @@
+token.txt
+
+.venv
+__pycache__
+*.code-workspace
+
+*.log
+*.db

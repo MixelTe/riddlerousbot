@@ -1,0 +1,26 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '14.x'
+    - name: Install typescript
+      run: npm i typescript
+    - name: Build app - words
+      run: |
+        tsc -p wwwroot/words/ts/tsconfig.json
+        rm wwwroot/words/.gitignore
+    - name: Deploy with gh-pages
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+        folder: .
