@@ -1,13 +1,14 @@
 import logging
+from logger import set_logging
+set_logging()
+
 from bot import process_update
 from data import db_session
-from logger import set_logging
 from flask import Flask, request
 
 import tgapi
 
 
-set_logging()
 tgapi.setup()
 app = Flask(__name__, static_folder=None)
 
