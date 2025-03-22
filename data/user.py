@@ -1,5 +1,5 @@
 from __future__ import annotations
-from sqlalchemy import DefaultClause, Column, Integer, BigInteger, String, Boolean
+from sqlalchemy import DefaultClause, Column, BigInteger, String, Boolean
 from sqlalchemy.orm import Session
 from sqlalchemy_serializer import SerializerMixin
 

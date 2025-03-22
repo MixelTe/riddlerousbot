@@ -60,3 +60,5 @@ class Actions:
 class Tables:
     User = "User"
     GameMessage = "GameMessage"
+    Task = "Task"
+    UserTask = "UserTask"

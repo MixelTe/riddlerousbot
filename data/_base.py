@@ -9,7 +9,7 @@ class Base:
     def get(cls, db_sess: Session, id: int):
         return db_sess.get(cls, id)
 
-    @staticmethod
+    @classmethod
     def all(cls, db_sess: Session):
         return db_sess.query(cls).all()
 

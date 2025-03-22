@@ -49,13 +49,14 @@ class InlineQuery(ParsedJson):
         if key == "from":
             return "sender", User(v)
 
+MaybeInaccessibleMessage = Message
 
 class CallbackQuery(ParsedJson):
     # https://core.telegram.org/bots/api#callbackquery
     __id_field__ = "id"
     id: str = ""
     sender: User = None
-    # message: MaybeInaccessibleMessage
+    message: MaybeInaccessibleMessage = None
     inline_message_id: str = ""
     chat_instance: str = ""
     data: str = ""
@@ -119,7 +120,7 @@ class InlineKeyboardButton(JsonObj):
     # web_app: WebAppInfo
     # login_url: LoginUrl
     # switch_inline_query: str
-    # switch_inline_query_current_chat: str
+    switch_inline_query_current_chat: str
     # switch_inline_query_chosen_chat: SwitchInlineQueryChosenChat
     # copy_text: CopyTextButton
     callback_game: CallbackGame = None
@@ -127,6 +128,18 @@ class InlineKeyboardButton(JsonObj):
 
     def __init__(self, text: str) -> None:
         self.text = text
+
+    @staticmethod
+    def callback(text: str, callback_data: str):
+        b = InlineKeyboardButton(text)
+        b.callback_data = callback_data
+        return b
+
+    @staticmethod
+    def inline_query_current_chat(text: str, query: str):
+        b = InlineKeyboardButton(text)
+        b.switch_inline_query_current_chat = query
+        return b
 
     @staticmethod
     def run_game(text: str):

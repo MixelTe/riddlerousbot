@@ -9,12 +9,13 @@ def getUpdates(offset: int = 0, timeout: int = 0):
     return True, list(map(lambda x: Update(x), r["result"]))
 
 
-def sendMessage(chat_id: str, text: str, message_thread_id: int = None, use_markdown = False):
+def sendMessage(chat_id: str, text: str, message_thread_id: int = None, use_markdown = False, reply_markup: InlineKeyboardMarkup = None):
     ok, r = call("sendMessage", {
         "chat_id": chat_id,
         "message_thread_id": message_thread_id,
         "text": text,
-        "parse_mode": "MarkdownV2" if use_markdown else None
+        "parse_mode": "MarkdownV2" if use_markdown else None,
+        "reply_markup": reply_markup,
     })
     if not ok:
         return False, r

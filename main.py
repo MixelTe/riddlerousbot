@@ -2,7 +2,7 @@ import logging
 from logger import set_logging
 set_logging()
 
-from bot import process_update
+from bot.main import process_update
 from data import db_session
 from flask import Flask, request
 
