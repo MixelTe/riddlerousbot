@@ -1,15 +1,15 @@
 from __future__ import annotations
+
 from sqlalchemy import Column, String
 from sqlalchemy.orm import Session
-from sqlalchemy_serializer import SerializerMixin
 
-from data.log import Log, Tables
+from bfs import SqlAlchemyBase, IdMixin, Log
+from data._tables import Tables
 from data.user import User
-from .db_session import SqlAlchemyBase
 
 
-class Task(SqlAlchemyBase, SerializerMixin):
-    __tablename__ = "Task"
+class Task(SqlAlchemyBase, IdMixin):
+    __tablename__ = Tables.Task
 
     answer  = Column(String(128), nullable=False)
 
@@ -22,14 +22,11 @@ class Task(SqlAlchemyBase, SerializerMixin):
         task = Task(answer=answer)
 
         db_sess.add(task)
-        Log.added(task, creator, Tables.Task, [
+        Log.added(task, creator, [
             ("answer", answer),
         ])
 
         return task
 
     def get_dict(self):
-        return {
-            "id": self.id,
-            "answer": self.answer,
-        }
+        return self.to_dict(only=("id", "answer"))

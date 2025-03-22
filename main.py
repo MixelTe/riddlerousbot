@@ -1,45 +1,29 @@
-import logging
-from logger import set_logging
-set_logging()
-
+import sys
+from bfs import AppConfig, create_app
+from scripts.init_values import init_values
 from bot.main import process_update
-from data import db_session
-from flask import Flask, request
-
 import tgapi
 
 
 tgapi.setup()
-app = Flask(__name__, static_folder=None)
+app, run = create_app(__name__, AppConfig(
+    MESSAGE_TO_FRONTEND="",
+    DEV_MODE="dev" in sys.argv,
+    DELAY_MODE="delay" in sys.argv,
+))
 
+# run(__name__ == "__main__", lambda: init_dev_values(True), port=5001)
 
-def main():
-    is_local_run = __name__ == "__main__"
-    db_session.global_init(file_db=is_local_run)
+run(False, lambda: init_values(True))
 
-    if is_local_run:
-        updates_listener()
-
-
-@app.route("/webhook", methods=["POST"])
-def webhook():
-    token = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
-    if (not tgapi.check_webhook_token(token)):
-        return "wrong token"
-    logging.info(f"webhook: {request.json}")
-    process_update(tgapi.Update(request.json))
-    return "ok"
-
-
-def updates_listener():
+if __name__ == "__main__":
     print("listening for updates...")
     update_id = -1
     while True:
         ok, updates = tgapi.getUpdates(update_id + 1, 60)
         if not ok:
+            print("Error!", updates)
             break
         for update in updates:
             update_id = max(update_id, update.update_id)
             process_update(update)
-
-main()

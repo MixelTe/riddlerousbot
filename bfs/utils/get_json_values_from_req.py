@@ -1,14 +1,14 @@
 from typing import Any, Union
-from flask import abort, request
+from flask import abort, g
 
-from utils import get_json, get_json_values, response_msg
+from . import get_json_values, response_msg
 
 field_name = str
 default_value = Any
 
 
 def get_json_values_from_req(*field_names: Union[field_name, tuple[field_name, default_value]]):
-    data, is_json = get_json(request)
+    data, is_json = g.json
     if not is_json:
         abort(response_msg("body is not json", 415))
 

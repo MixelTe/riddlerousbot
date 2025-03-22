@@ -1,21 +1,20 @@
 from __future__ import annotations
+
 from sqlalchemy import DateTime, Column, ForeignKey, Integer
 from sqlalchemy import orm
 from sqlalchemy.orm import Session
-from sqlalchemy_serializer import SerializerMixin
 
-from data.log import Log, Tables
-from data.get_datetime_now import get_datetime_now
+from bfs import SqlAlchemyBase, IdMixin, Log, get_datetime_now
+from data._tables import Tables
 from data.user import User
-from .db_session import SqlAlchemyBase
 
 
-class UserTask(SqlAlchemyBase, SerializerMixin):
-    __tablename__ = "UserTask"
+class UserTask(SqlAlchemyBase, IdMixin):
+    __tablename__ = Tables.UserTask
 
-    userId     = Column(Integer, ForeignKey("User.id"), nullable=False)
-    taskId     = Column(Integer, ForeignKey("Task.id"), nullable=False)
-    date       = Column(DateTime, nullable=False)
+    userId = Column(Integer, ForeignKey("User.id"), nullable=False)
+    taskId = Column(Integer, ForeignKey("Task.id"), nullable=False)
+    date = Column(DateTime, nullable=False)
 
     user = orm.relationship("User")
     task = orm.relationship("Task")
@@ -30,9 +29,10 @@ class UserTask(SqlAlchemyBase, SerializerMixin):
         userTask = UserTask(userId=userId, taskId=taskId, date=now)
 
         db_sess.add(userTask)
-        Log.added(userTask, creator, Tables.UserTask, [
+        Log.added(userTask, creator, [
             ("userId", userId),
             ("taskId", taskId),
+            ("date", now.isoformat()),
         ], now)
 
         return userTask
@@ -46,8 +46,4 @@ class UserTask(SqlAlchemyBase, SerializerMixin):
         return db_sess.query(UserTask).filter(UserTask.userId == userId).all()
 
     def get_dict(self):
-        return {
-            "id": self.id,
-            "userId": self.userId,
-            "taskId": self.taskId,
-        }
+        return self.to_dict(only=("id", "userId", "taskId", "date"))

@@ -1,6 +1,7 @@
 import sys
 
-def main(set = True):
+
+def main(set=True):
     import urllib.parse
     import requests
     try:

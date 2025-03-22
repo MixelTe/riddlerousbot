@@ -1,4 +1,4 @@
-from utils import response_msg
+from . import response_msg
 
 
 def response_not_found(name: str, id: int):

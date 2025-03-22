@@ -49,7 +49,9 @@ class InlineQuery(ParsedJson):
         if key == "from":
             return "sender", User(v)
 
+
 MaybeInaccessibleMessage = Message
+
 
 class CallbackQuery(ParsedJson):
     # https://core.telegram.org/bots/api#callbackquery
@@ -80,6 +82,7 @@ class ChosenInlineResult(ParsedJson):
         if key == "from":
             return "sender", User(v)
 
+
 class Update(ParsedJson):
     # https://core.telegram.org/bots/api#update
     __id_field__ = "update_id"
@@ -102,7 +105,7 @@ class InputTextMessageContent(InputMessageContent):
     # entities: list[MessageEntity]
     # link_preview_options: LinkPreviewOptions
 
-    def __init__(self, message_text, use_markdown = False) -> None:
+    def __init__(self, message_text, use_markdown=False) -> None:
         self.message_text = message_text
         self.parse_mode = "MarkdownV2" if use_markdown else None
 
@@ -193,6 +196,7 @@ class InlineQueryResultGame(InlineQueryResult):
     id: str
     game_short_name: str
     reply_markup: InlineKeyboardMarkup = None
+
     def __init__(self, id: str, game_short_name: str, reply_markup: InlineKeyboardMarkup = None) -> None:
         self.id = id
         self.game_short_name = game_short_name

@@ -33,7 +33,7 @@ class Bot:
     def on_inline_query(self):
         answerInlineQuery(self.inline_query.id, [])
 
-    def sendMessage(self, text: str, message_thread_id: int = None, use_markdown = False, reply_markup: InlineKeyboardMarkup = None):
+    def sendMessage(self, text: str, message_thread_id: int = None, use_markdown=False, reply_markup: InlineKeyboardMarkup = None):
         chat_id = None
         if self.message:
             chat_id = self.message.chat.id

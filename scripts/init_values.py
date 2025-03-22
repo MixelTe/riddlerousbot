@@ -3,63 +3,31 @@ import os
 
 
 def init_values(dev=False, cmd=False):
-    if dev:
-        if not os.path.exists("db"):
-            os.makedirs("db")
-        if cmd:
-            add_parent_to_path()
-    else:
+    print(f"init_values {dev=}")
+    if cmd:
         add_parent_to_path()
 
-    from data import db_session
-    from data.get_datetime_now import get_datetime_now
-    from data.log import Log, Actions, Tables
+    from bfs import db_session, init_db_values
+    from data._roles import Roles
     from data.user import User
 
-    now = get_datetime_now()
+    if cmd or not dev:
+        init_db_values(dev)
 
-    def log(db_sess, user_admin, tableName, recordId, changes):
-        db_sess.add(Log(
-            date=now,
-            actionCode=Actions.added,
-            userId=user_admin.id,
-            userName=user_admin.name,
-            tableName=tableName,
-            recordId=recordId,
-            changes=changes
-        ))
+    db_session.global_init(dev)
+    db_sess = db_session.create_session()
 
-    def init():
-        db_session.global_init(dev)
-        db_sess = db_session.create_session()
+    u = User.new(db_sess, 5377785956, False, "Mixel", "", "MixelTe", "en")
+    u.add_role(u, Roles.admin)
 
-        user_admin = User.new(db_sess, 5377785956, False, "Mixel", "", "MixelTe", "en", admin=True)
-        db_sess.commit()
-
-        if dev:
-            init_values_dev(db_sess, user_admin)
-
-    def init_values_dev(db_sess, user_admin):
-        pass
-        # from datetime import timedelta
-        # from random import randint, choice
-        # import shutil
-        # from utils.randstr import randstr
-
-        # db_sess.commit()
-
-    init()
+    db_sess.commit()
+    db_sess.close()
 
 
 def add_parent_to_path():
     current = os.path.dirname(os.path.realpath(__file__))
     parent = os.path.dirname(current)
     sys.path.append(parent)
-
-
-def read_file(path):
-    with open(path) as f:
-        return f.read()
 
 
 if __name__ == "__main__":

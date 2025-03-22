@@ -4,4 +4,6 @@ PyMySQL
 requests==2.32.3
 sqlalchemy_serializer==1.4.1
 sqlalchemy==2.0.19
+pyjwt<2.10
+flask_jwt_extended==4.5.2
 werkzeug==2.3.6

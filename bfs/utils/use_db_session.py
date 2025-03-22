@@ -1,5 +1,5 @@
 from functools import wraps
-from data import db_session
+from bfs import db_session
 
 
 def use_db_session():

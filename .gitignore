@@ -2,7 +2,8 @@ token.txt
 
 .venv
 __pycache__
-*.code-workspace
 
-*.log
-*.db
+logs/
+db/
+/images
+secret_key_jwt.txt

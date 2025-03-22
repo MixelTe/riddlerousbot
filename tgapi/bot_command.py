@@ -16,9 +16,10 @@ class BotCommand(Bot):
         self._commands[command] = fn
 
     @classmethod
-    def add_command(cls):
-        def wrapper(fn, command: str):
+    def add_command(cls, command: str):
+        def wrapper(fn):
             cls._commands[command] = fn
+
             @wraps(fn)
             def decorator(*args, **kwargs):
                 fn(*args, **kwargs)
@@ -45,5 +46,5 @@ class BotCommand(Bot):
         fn = self._commands.get(command, None)
         if not fn:
             return False
-        fn(args)
+        fn(self, args)
         return True

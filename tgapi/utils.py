@@ -35,8 +35,8 @@ def call(method: str, json: Union["JsonObj", dict[str, Any]] = None, timeout: in
     if isinstance(json, dict):
         json = JsonDynamicObj(json)
     json = json.to_json()
-    r = requests.post(f"https://api.telegram.org/bot{token_bot}/{method}", json=json, timeout=timeout)
     try:
+        r = requests.post(f"https://api.telegram.org/bot{token_bot}/{method}", json=json, timeout=timeout)
         if not r.ok:
             logging.error(f"tgapi: {method} [{r.status_code}]\t{json}; {r.content}")
             return False, r.json()
@@ -54,6 +54,7 @@ def get_all_fields(obj):
 
 class ParsedJson:
     __id_field__ = None
+
     def __init__(self, json: dict[str, Any]):
         a = self.__annotations__
         for key in json:
