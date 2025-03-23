@@ -46,8 +46,12 @@ class User(UserBase):
             return self.username
         return f"${self.id_tg}"
 
+    _is_admin = None
+
     def is_admin(self):
-        return self.has_role(Roles.admin)
+        if self._is_admin is None:
+            self._is_admin = self.has_role(Roles.admin)
+        return self._is_admin
 
     @staticmethod
     def new_from_data(db_sess: Session, data: tgapi.User):

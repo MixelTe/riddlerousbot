@@ -1,11 +1,12 @@
 import sys
 from bfs import AppConfig, create_app
 from scripts.init_values import init_values
-from bot.main import process_update
+from bot.main import process_update, setup_bot
 import tgapi
 
 
 tgapi.setup()
+setup_bot()
 app, run = create_app(__name__, AppConfig(
     MESSAGE_TO_FRONTEND="",
     DEV_MODE="dev" in sys.argv,

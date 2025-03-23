@@ -201,3 +201,12 @@ class InlineQueryResultGame(InlineQueryResult):
         self.id = id
         self.game_short_name = game_short_name
         self.reply_markup = reply_markup
+
+
+class BotCommand(JsonObj):
+    command: str  # 1-32 characters. Can contain only lowercase English letters, digits and underscores.
+    description: str  # 1-256 characters.
+
+    def __init__(self, command: str, description: str):
+        self.command = command
+        self.description = description

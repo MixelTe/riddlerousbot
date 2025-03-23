@@ -61,3 +61,15 @@ def answerCallbackQuery(
     if not ok:
         return False, r
     return True, r["result"]
+
+
+# https://core.telegram.org/bots/api#setmycommands
+def setMyCommands(commands: list[BotCommand], scope=None, language_code=None):
+    ok, r = call("setmycommands", {
+        "commands": commands,
+        "scope": scope,
+        "language_code": language_code,
+    })
+    if not ok:
+        return False, r
+    return True, r["result"]
