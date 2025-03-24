@@ -109,6 +109,7 @@ def setLogging():
     create_folder_for_file(bfs_config.log_requests_path)
     create_folder_for_file(bfs_config.log_frontend_path)
     logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
     logger.handlers.clear()
     logging.Formatter.converter = customTime
     maxBytes = 8 * 1000 * 1000

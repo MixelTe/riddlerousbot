@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Union
 from .types import *
 from .methods import *
 
@@ -10,15 +10,19 @@ class Bot:
     inline_query: InlineQuery = None
     chosen_inline_result: ChosenInlineResult = None
 
-    _commands: dict[str, (Callable[["Bot", list[str]], None], str)] = {}
+    _commands: dict[str, (Callable[["Bot", list[str]], Union[None, str]], str)] = {}
     TextWrongCommand = "Wrong command"
 
+    @property
+    def is_callback(self):
+        return self.callback_query is not None
+
     def init(self):
-        setMyCommands([BotCommand(cmd, self._commands[cmd][1]) for cmd in self._commands.keys()])
+        setMyCommands([BotCommand(cmd, self._commands[cmd][1]) for cmd in self._commands.keys() if self._commands[cmd][1]])
 
     @classmethod
     def add_command(cls, command: str, description: str):
-        def wrapper(fn: Callable[["Bot", list[str]], None]):
+        def wrapper(fn: Callable[["Bot", list[str]], Union[None, str]]):
             cls._commands[command] = (fn, description)
             return fn
         return wrapper
@@ -54,7 +58,11 @@ class Bot:
 
     def on_message(self):
         if self.message.text.startswith("/"):
-            if not self.on_command(self.message.text[1:]):
+            r = self.on_command(self.message.text[1:])
+            if r:
+                if isinstance(r, str):
+                    self.sendMessage(r)
+            else:
                 self.sendMessage(self.TextWrongCommand)
         else:
             self.on_message_text()
@@ -72,17 +80,20 @@ class Bot:
         if not cmd:
             return False
         fn, description = cmd
-        fn(self, args)
+        r = fn(self, args)
+        if r:
+            return r
         return True
 
     def on_callback_query(self):
-        if self.on_command(self.callback_query.data):
-            answerCallbackQuery(self.callback_query.id)
+        r = self.on_command(self.callback_query.data)
+        if r:
+            self.answerCallbackQuery(r if isinstance(r, str) else None)
         else:
-            answerCallbackQuery(self.callback_query.id, self.TextWrongCommand)
+            self.answerCallbackQuery(self.TextWrongCommand)
 
     def on_inline_query(self):
-        answerInlineQuery(self.inline_query.id, [])
+        self.answerInlineQuery([])
 
     def sendMessage(self, text: str, message_thread_id: int = None, use_markdown=False, reply_markup: InlineKeyboardMarkup = None):
         chat_id = None
@@ -92,7 +103,17 @@ class Bot:
             chat_id = self.callback_query.message.chat.id
         else:
             raise Exception("tgapi: cant send message without chat id")
-        sendMessage(chat_id, text, message_thread_id, use_markdown, reply_markup)
+        return sendMessage(chat_id, text, message_thread_id, use_markdown, reply_markup)
+
+    def answerCallbackQuery(self, text: str = None, show_alert: bool = False, url: str = None, cache_time: int = 0):
+        if self.callback_query is None:
+            raise Exception("tgapi: Bot.answerCallbackQuery is avaible only inside on_callback_query")
+        return answerCallbackQuery(self.callback_query.id, text, show_alert, url, cache_time)
+
+    def answerInlineQuery(self, results: list[InlineQueryResult], cache_time: int = 300, is_personal: bool = False, next_offset: str = None):
+        if self.callback_query is None:
+            raise Exception("tgapi: Bot.answerInlineQuery is avaible only inside on_inline_query")
+        return answerInlineQuery(self.inline_query.id, results, cache_time, is_personal, next_offset)
 
     def on_chosen_inline_result(self):
         pass

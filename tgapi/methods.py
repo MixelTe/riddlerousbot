@@ -1,3 +1,4 @@
+from typing import Union
 from .utils import call
 from .types import *
 
@@ -9,6 +10,7 @@ def getUpdates(offset: int = 0, timeout: int = 0):
     return True, list(map(lambda x: Update(x), r["result"]))
 
 
+# https://core.telegram.org/bots/api#sendmessage
 def sendMessage(chat_id: str, text: str, message_thread_id: int = None, use_markdown=False, reply_markup: InlineKeyboardMarkup = None):
     ok, r = call("sendMessage", {
         "chat_id": chat_id,
@@ -20,6 +22,67 @@ def sendMessage(chat_id: str, text: str, message_thread_id: int = None, use_mark
     if not ok:
         return False, r
     return True, Message(r["result"])
+
+
+# https://core.telegram.org/bots/api#editmessagetext
+def editMessageText(chat_id: Union[int, str], message_id: int, text: str, use_markdown=False, reply_markup: InlineKeyboardMarkup = None):
+    ok, r = call("editMessageText", {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "text": text,
+        "parse_mode": "MarkdownV2" if use_markdown else None,
+        "reply_markup": reply_markup,
+    })
+    if not ok:
+        return False, r
+    return True, Message(r["result"])
+
+
+# https://core.telegram.org/bots/api#editmessagetext
+def editMessageText_inline(inline_message_id: str, text: str, use_markdown=False, reply_markup: InlineKeyboardMarkup = None):
+    ok, r = call("editMessageText", {
+        "inline_message_id": inline_message_id,
+        "text": text,
+        "parse_mode": "MarkdownV2" if use_markdown else None,
+        "reply_markup": reply_markup,
+    })
+    if not ok:
+        return False, r
+    return True, Message(r["result"])
+
+
+# https://core.telegram.org/bots/api#editmessagereplymarkup
+def editMessageReplyMarkup(chat_id: Union[int, str], message_id: int, reply_markup: InlineKeyboardMarkup):
+    ok, r = call("editMessageReplyMarkup", {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "reply_markup": reply_markup,
+    })
+    if not ok:
+        return False, r
+    return True, Message(r["result"])
+
+
+# https://core.telegram.org/bots/api#editmessagereplymarkup
+def editMessageReplyMarkup_inline(inline_message_id: str, reply_markup: InlineKeyboardMarkup):
+    ok, r = call("editMessageReplyMarkup", {
+        "inline_message_id": inline_message_id,
+        "reply_markup": reply_markup,
+    })
+    if not ok:
+        return False, r
+    return True, Message(r["result"])
+
+
+# https://core.telegram.org/bots/api#deletemessage
+def deleteMessage(chat_id: Union[int, str], message_id: int):
+    ok, r = call("deleteMessage", {
+        "chat_id": chat_id,
+        "message_id": message_id,
+    })
+    if not ok:
+        return False, r
+    return True, r["result"]
 
 
 # https://core.telegram.org/bots/api#answerinlinequery

@@ -26,6 +26,7 @@ class Message(ParsedJson):
     __id_field__ = "message_id"
     # https://core.telegram.org/bots/api#message
     message_id: int = 0
+    message_thread_id: int = None
     sender: User = None
     chat: Chat = None
     text: str = ""

@@ -2,5 +2,6 @@ from bfs import TablesBase
 
 
 class Tables(TablesBase):
-    Task = "Task"
-    UserTask = "UserTask"
+    Msg = "Msg"
+    Queue = "Queue"
+    QueueUser = "QueueUser"
