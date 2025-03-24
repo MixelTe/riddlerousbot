@@ -99,8 +99,12 @@ class Bot:
         chat_id = None
         if self.message:
             chat_id = self.message.chat.id
+            if message_thread_id is None:
+                message_thread_id = self.message.message_thread_id
         elif self.callback_query:
             chat_id = self.callback_query.message.chat.id
+            if message_thread_id is None:
+                message_thread_id = self.callback_query.message.message_thread_id
         else:
             raise Exception("tgapi: cant send message without chat id")
         return sendMessage(chat_id, text, message_thread_id, use_markdown, reply_markup)

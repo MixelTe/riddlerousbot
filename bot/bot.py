@@ -24,13 +24,15 @@ class Bot(tgapi.Bot):
     def after_process_update(self):
         self.db_sess.close()
 
+# TODO: edit queue methods
+
 
 @Bot.add_command("new_queue", "Создать новую очередь")
 def new_queue(bot: Bot, args: list[str]):
     if len(args) < 1:
         return "Укажите имя очереди\nUsage: /new_queue <name>"
     name = " ".join(args)
-    ok, r = bot.sendMessage(f"📝 Очередь {name}:\n⏳ Создание...", message_thread_id=bot.message.message_thread_id)
+    ok, r = bot.sendMessage(f"📝 Очередь {name}:\n⏳ Создание...")
     if not ok:
         return "Error!"
 
@@ -61,10 +63,13 @@ def updateQueue(bot: Bot, queue: Queue):
         if queue.msg_next is not None:
             tgapi.deleteMessage(queue.msg_next.chat_id, queue.msg_next.message_id)
             queue.msg_next = None
-        ok, r = bot.sendMessage(txt_next, reply_markup=tgapi.InlineKeyboardMarkup([[
-            tgapi.InlineKeyboardButton.callback("Пропустить 1", f"pass_queue {queue.id}"),
-            tgapi.InlineKeyboardButton.callback("Выйти из очди", f"exit_queue {queue.id}"),
-        ]]), message_thread_id=queue.msg.message_thread_id)
+        btns = []
+        if len(qus) > 1:
+            btns.append(tgapi.InlineKeyboardButton.callback("Пропустить 1", f"pass_queue {queue.id}"))
+        btns.append(tgapi.InlineKeyboardButton.callback("Выйти из очди", f"exit_queue {queue.id}"))
+        if len(qus) > 2:
+            btns.append(tgapi.InlineKeyboardButton.callback("Встать в конец", f"end_queue {queue.id}"))
+        ok, r = bot.sendMessage(txt_next, reply_markup=tgapi.InlineKeyboardMarkup([btns]), message_thread_id=queue.msg.message_thread_id)
         if not ok:
             return "Error!"
         queue.msg_next = Msg.new_from_data(bot.db_sess, r)
@@ -118,3 +123,49 @@ def exit_queue(bot: Bot, args: list[str]):
     qu.delete()
     updateQueue(bot, queue)
     return "Вы вышли из очереди"
+
+
+@Bot.add_command("pass_queue", None)
+def pass_queue(bot: Bot, args: list[str]):
+    if len(args) < 1:
+        return "No queue id provided"
+
+    id = parse_int(args[0])
+    if id is None:
+        return "id is NaN"
+
+    queue = Queue.get(bot.db_sess, id)
+    if queue is None:
+        return f"queue with id={id} doesnt exist"
+
+    qu = QueueUser.get(bot.db_sess, id, bot.user.id)
+    if qu is None:
+        return "Вы не в очереди"
+
+    # TODO
+    updateQueue(bot, queue)
+    return "Вы пропустили одного"
+
+
+@Bot.add_command("end_queue", None)
+def end_queue(bot: Bot, args: list[str]):
+    if len(args) < 1:
+        return "No queue id provided"
+
+    id = parse_int(args[0])
+    if id is None:
+        return "id is NaN"
+
+    queue = Queue.get(bot.db_sess, id)
+    if queue is None:
+        return f"queue with id={id} doesnt exist"
+
+    qu = QueueUser.get(bot.db_sess, id, bot.user.id)
+    if qu is None:
+        QueueUser.new(bot.db_sess, id, bot.user.id)
+    else:
+        # TODO
+        pass
+
+    updateQueue(bot, queue)
+    return "Вы встали в конец"
