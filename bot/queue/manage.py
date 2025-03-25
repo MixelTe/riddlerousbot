@@ -6,6 +6,7 @@ from data.queue import Queue
 
 # TODO: edit queue methods
 
+
 @Bot.add_command("queue_rename", (None, "Переименновать очередь"))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
@@ -29,7 +30,7 @@ def new_queue(bot: Bot, args: list[str]):
 @Bot.add_command("queue_clear", (None, "Очистить очередь"))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def new_queue(bot: Bot, args: list[str]):
+def queue_clear(bot: Bot, args: list[str]):
     queue, err = get_queue_by_reply(bot)
     if err:
         return err
@@ -43,7 +44,7 @@ def new_queue(bot: Bot, args: list[str]):
 @Bot.add_command("queue_force_update", (None, "Обновить очередь"))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def new_queue(bot: Bot, args: list[str]):
+def queue_force_update(bot: Bot, args: list[str]):
     queue, err = get_queue_by_reply(bot)
     if err:
         return err

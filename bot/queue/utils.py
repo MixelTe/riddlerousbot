@@ -12,7 +12,7 @@ class updateQueueLoudness:
     loud = 2
 
 
-def updateQueue(bot: Bot, queue: Queue, loudness = updateQueueLoudness.loud):
+def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
     txt = f"📝 Очередь {queue.name}:\n"
     txt += "-" * (len(txt) - 2) + "\n"
     qus = QueueUser.all_in_queue(bot.db_sess, queue.id)
@@ -31,7 +31,7 @@ def updateQueue(bot: Bot, queue: Queue, loudness = updateQueueLoudness.loud):
             if len(qus) > 1:
                 txt_next = f"🎞 Следующие в очереди {queue.name}\n🥇-> @{qus[0].user.username}\n🥈-> @{qus[1].user.username}"
                 if len(qus) == 3:
-                    txt_next += f"\n💤 И ещё 1 ждущий"
+                    txt_next += "\n💤 И ещё 1 ждущий"
                 elif len(qus) > 3:
                     txt_next += f"\n💤 И ещё {len(qus) - 2} ждущих"
             else:
@@ -58,7 +58,8 @@ def updateQueue(bot: Bot, queue: Queue, loudness = updateQueueLoudness.loud):
                 bot.db_sess.commit()
             else:
                 if queue.msg_next is not None:
-                    tgapi.editMessageText(queue.msg_next.chat_id, queue.msg_next.message_id, txt_next, reply_markup=tgapi.InlineKeyboardMarkup([btns]))
+                    tgapi.editMessageText(queue.msg_next.chat_id, queue.msg_next.message_id,
+                                          txt_next, reply_markup=tgapi.InlineKeyboardMarkup([btns]))
 
     tgapi.editMessageText(queue.msg.chat_id, queue.msg.message_id, txt, reply_markup=tgapi.InlineKeyboardMarkup([[
         tgapi.InlineKeyboardButton.callback("Встать", f"queue_enter {queue.id}"),

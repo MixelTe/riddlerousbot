@@ -5,6 +5,7 @@ from .methods import *
 cmd_fn = Callable[["Bot", list[str]], Union[None, str]]
 cmd_dsc = Union[None, str]
 
+
 class Bot:
     update: Update = None
     message: Message = None
@@ -23,7 +24,8 @@ class Bot:
 
     def init(self):
         setMyCommands([BotCommand(cmd, self._commands[cmd][1][0]) for cmd in self._commands.keys() if self._commands[cmd][1][0]])
-        setMyCommands([BotCommand(cmd, self._commands[cmd][1][1]) for cmd in self._commands.keys() if self._commands[cmd][1][1]], BotCommandScope.all_chat_administrators())
+        setMyCommands([BotCommand(cmd, self._commands[cmd][1][1]) for cmd in self._commands.keys()
+                      if self._commands[cmd][1][1]], BotCommandScope.all_chat_administrators())
 
     @classmethod
     def add_command(cls, command: str, description: Union[cmd_dsc, Tuple[cmd_dsc, cmd_dsc]]):
@@ -117,7 +119,8 @@ class Bot:
     def on_inline_query(self):
         self.answerInlineQuery([])
 
-    def sendMessage(self, text: str, message_thread_id: int = None, use_markdown=False, reply_markup: InlineKeyboardMarkup = None, reply_parameters: ReplyParameters = None):
+    def sendMessage(self, text: str, message_thread_id: int = None, use_markdown=False,
+                    reply_markup: InlineKeyboardMarkup = None, reply_parameters: ReplyParameters = None):
         chat_id = None
         if self.message:
             chat_id = self.message.chat.id
