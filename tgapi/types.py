@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any, Literal, Union
 from .utils import JsonObj, ParsedJson
 
 
@@ -218,7 +218,55 @@ class BotCommand(JsonObj):
         self.description = description
 
 
-class ChatMember(JsonObj):
+class ChatMember(ParsedJson):
     # https://core.telegram.org/bots/api#chatmember
     status: Literal["creator", "administrator", "member", "restricted", "left", "kicked"] = ""
     user: User
+
+
+BotCommandScopeType = Literal["default", "all_private_chats", "all_group_chats", "all_chat_administrators", "chat", "chat_administrators", "chat_member"]
+
+
+class BotCommandScope(JsonObj):
+    # https://core.telegram.org/bots/api#botcommandscope
+    type: BotCommandScopeType = "default"
+    chat_id: Union[str, int]
+    user_id: int
+
+    def __init__(self, type: BotCommandScopeType):
+        self.type = type
+
+    @staticmethod
+    def default():
+        return BotCommandScope("default")
+
+    @staticmethod
+    def all_private_chats():
+        return BotCommandScope("all_private_chats")
+
+    @staticmethod
+    def all_group_chats():
+        return BotCommandScope("all_group_chats")
+
+    @staticmethod
+    def all_chat_administrators():
+        return BotCommandScope("all_chat_administrators")
+
+    @staticmethod
+    def chat(chat_id: Union[str, int]):
+        scope = BotCommandScope("chat")
+        scope.chat_id = chat_id
+        return scope
+
+    @staticmethod
+    def chat_administrators(chat_id: Union[str, int]):
+        scope = BotCommandScope("chat_administrators")
+        scope.chat_id = chat_id
+        return scope
+
+    @staticmethod
+    def chat_member(chat_id: Union[str, int], user_id: int):
+        scope = BotCommandScope("chat_member")
+        scope.chat_id = chat_id
+        scope.user_id = user_id
+        return scope

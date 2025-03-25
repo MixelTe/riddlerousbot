@@ -6,7 +6,7 @@ from data.queue import Queue
 
 # TODO: edit queue methods
 
-@Bot.add_command("queue_rename", "Переименновать очередь")
+@Bot.add_command("queue_rename", (None, "Переименновать очередь"))
 def new_queue(bot: Bot, args: list[str]):
     queue, err = get_queue_by_reply(bot)
     if err:
@@ -24,7 +24,7 @@ def new_queue(bot: Bot, args: list[str]):
     return f"✏ Имя очереди {old_name} обновлено на очередь {name}"
 
 
-@Bot.add_command("queue_clear", "Очистить очередь")
+@Bot.add_command("queue_clear", (None, "Очистить очередь"))
 def new_queue(bot: Bot, args: list[str]):
     queue, err = get_queue_by_reply(bot)
     if err:

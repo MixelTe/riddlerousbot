@@ -6,7 +6,7 @@ from data.queue import Queue
 from utils import find
 
 
-@Bot.add_command("queue_new", "Создать новую очередь")
+@Bot.add_command("queue_new", (None, "Создать новую очередь"))
 def queue_new(bot: Bot, args: list[str]):
     if len(args) < 1:
         return "Укажите имя очереди\nUsage: /queue_new <name>"

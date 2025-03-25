@@ -1,7 +1,9 @@
-from typing import Callable, Union
+from typing import Callable, Tuple, Union
 from .types import *
 from .methods import *
 
+cmd_fn = Callable[["Bot", list[str]], Union[None, str]]
+cmd_dsc = Union[None, str]
 
 class Bot:
     update: Update = None
@@ -10,7 +12,7 @@ class Bot:
     inline_query: InlineQuery = None
     chosen_inline_result: ChosenInlineResult = None
 
-    _commands: dict[str, (Callable[["Bot", list[str]], Union[None, str]], str)] = {}
+    _commands: dict[str, Tuple[cmd_fn, Tuple[cmd_dsc, cmd_dsc]]] = {}
     TextWrongCommand = "Wrong command"
 
     @property
@@ -18,12 +20,18 @@ class Bot:
         return self.callback_query is not None
 
     def init(self):
-        setMyCommands([BotCommand(cmd, self._commands[cmd][1]) for cmd in self._commands.keys() if self._commands[cmd][1]])
+        setMyCommands([BotCommand(cmd, self._commands[cmd][1][0]) for cmd in self._commands.keys() if self._commands[cmd][1][0]])
+        setMyCommands([BotCommand(cmd, self._commands[cmd][1][1]) for cmd in self._commands.keys() if self._commands[cmd][1][1]], BotCommandScope.all_chat_administrators())
 
     @classmethod
-    def add_command(cls, command: str, description: str):
-        def wrapper(fn: Callable[["Bot", list[str]], Union[None, str]]):
-            cls._commands[command] = (fn, description)
+    def add_command(cls, command: str, description: Union[cmd_dsc, Tuple[cmd_dsc, cmd_dsc]]):
+        def wrapper(fn: cmd_fn):
+            if isinstance(description, tuple):
+                pub, pri = description
+            else:
+                pub, pri = description, description
+
+            cls._commands[command] = (fn, (pub, pri))
             return fn
         return wrapper
 
