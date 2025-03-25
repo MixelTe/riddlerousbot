@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from bfs import db_session
+from bfs import db_session, get_datetime_now
 from data.msg import Msg
 from data.queue_user import QueueUser
 from data.user import User
@@ -56,7 +56,9 @@ def updateQueue(bot: Bot, queue: Queue):
             txt += f"{i+1}) @{user.username}\n"
         if len(qus) > 1:
             txt_next = f"🎞 Следующие в очереди {queue.name}\n🥇-> @{qus[0].user.username}\n🥈-> @{qus[1].user.username}"
-            if len(qus) > 2:
+            if len(qus) == 3:
+                txt_next += f"\n💤 И ещё 1 ждущий"
+            elif len(qus) > 3:
                 txt_next += f"\n💤 И ещё {len(qus) - 2} ждущих"
         else:
             txt_next = f"🎞 Следующий в очереди {queue.name}\n🥇-> @{qus[0].user.username}"
@@ -142,7 +144,20 @@ def pass_queue(bot: Bot, args: list[str]):
     if qu is None:
         return "Вы не в очереди"
 
-    # TODO
+    qus = QueueUser.all_in_queue(bot.db_sess, queue.id)
+    next_qu = None
+    pqu = None
+    for cqu in qus:
+        if pqu == qu:
+            next_qu = cqu
+            break
+        pqu = cqu
+
+    if next_qu is None:
+        return "Вы уже в конце очереди"
+
+    qu.enter_date, next_qu.enter_date = next_qu.enter_date, qu.enter_date
+    bot.db_sess.commit()
     updateQueue(bot, queue)
     return "Вы пропустили одного"
 
@@ -164,8 +179,8 @@ def end_queue(bot: Bot, args: list[str]):
     if qu is None:
         QueueUser.new(bot.db_sess, id, bot.user.id)
     else:
-        # TODO
-        pass
+        qu.enter_date = get_datetime_now()
+        bot.db_sess.commit()
 
     updateQueue(bot, queue)
     return "Вы встали в конец"
