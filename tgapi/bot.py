@@ -13,6 +13,8 @@ class Bot:
     chosen_inline_result: ChosenInlineResult = None
 
     _commands: dict[str, Tuple[cmd_fn, Tuple[cmd_dsc, cmd_dsc]]] = {}
+    sender: Union[User, None] = None
+    chat: Union[Chat, None] = None
     TextWrongCommand = "Wrong command"
 
     @property
@@ -35,11 +37,18 @@ class Bot:
             return fn
         return wrapper
 
-    def before_process_update(self, user: User):
-        pass
-
-    def after_process_update(self):
-        pass
+    @staticmethod
+    def cmd_for_admin(fn):
+        def wrapped(bot: Bot, args: list[str]):
+            if bot.chat is None or bot.sender is None:
+                return "403(500!)"
+            ok, r = getChatMember(bot.chat.id, bot.sender.id)
+            if not ok:
+                return "403(500)"
+            if r.status != "creator" and r.status != "administrator":
+                return "Эта команда только для админов"
+            return fn(bot, args)
+        return wrapped
 
     def process_update(self, update: Update):
         self.update = update
@@ -47,19 +56,22 @@ class Bot:
         self.callback_query = update.callback_query
         self.inline_query = update.inline_query
         self.chosen_inline_result = update.chosen_inline_result
+        self.sender = None
+        self.chat = None
         if update.message and update.message.text != "":
-            self.before_process_update(self.message.sender)
+            self.sender = self.message.sender
+            self.chat = self.message.chat
             self.on_message()
         if update.callback_query:
-            self.before_process_update(self.callback_query.sender)
+            self.sender = self.callback_query.sender
+            self.chat = self.callback_query.message.chat
             self.on_callback_query()
         if update.inline_query:
-            self.before_process_update(self.inline_query.sender)
+            self.sender = self.inline_query.sender
             self.on_inline_query()
         if update.chosen_inline_result:
-            self.before_process_update(self.chosen_inline_result.sender)
+            self.sender = self.chosen_inline_result.sender
             self.on_chosen_inline_result()
-        self.after_process_update()
 
     def on_message_text(self):
         pass

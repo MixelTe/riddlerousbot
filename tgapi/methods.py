@@ -146,4 +146,4 @@ def getChatMember(chat_id: Union[str, int], user_id: int):
     })
     if not ok:
         return False, r
-    return True, r["result"]
+    return True, ChatMember(r["result"])

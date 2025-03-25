@@ -7,6 +7,8 @@ from utils import find
 
 
 @Bot.add_command("queue_new", (None, "Создать новую очередь"))
+@Bot.cmd_connect_db
+@Bot.cmd_for_admin
 def queue_new(bot: Bot, args: list[str]):
     if len(args) < 1:
         return "Укажите имя очереди\nUsage: /queue_new <name>"
@@ -20,6 +22,7 @@ def queue_new(bot: Bot, args: list[str]):
 
 
 @Bot.add_command("queue_enter", None)
+@Bot.cmd_connect_db
 def queue_enter(bot: Bot, args: list[str]):
     queue, err = get_queue(bot, args)
     if err:
@@ -35,6 +38,7 @@ def queue_enter(bot: Bot, args: list[str]):
 
 
 @Bot.add_command("queue_exit", None)
+@Bot.cmd_connect_db
 def queue_exit(bot: Bot, args: list[str]):
     queue, err = get_queue(bot, args)
     if err:
@@ -50,6 +54,7 @@ def queue_exit(bot: Bot, args: list[str]):
 
 
 @Bot.add_command("queue_pass", None)
+@Bot.cmd_connect_db
 def queue_pass(bot: Bot, args: list[str]):
     queue, err = get_queue(bot, args)
     if err:
@@ -73,6 +78,7 @@ def queue_pass(bot: Bot, args: list[str]):
 
 
 @Bot.add_command("queue_end", None)
+@Bot.cmd_connect_db
 def queue_end(bot: Bot, args: list[str]):
     queue, err = get_queue(bot, args)
     if err:
