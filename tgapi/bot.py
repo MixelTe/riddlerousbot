@@ -117,7 +117,7 @@ class Bot:
     def on_inline_query(self):
         self.answerInlineQuery([])
 
-    def sendMessage(self, text: str, message_thread_id: int = None, use_markdown=False, reply_markup: InlineKeyboardMarkup = None):
+    def sendMessage(self, text: str, message_thread_id: int = None, use_markdown=False, reply_markup: InlineKeyboardMarkup = None, reply_parameters: ReplyParameters = None):
         chat_id = None
         if self.message:
             chat_id = self.message.chat.id
@@ -129,7 +129,7 @@ class Bot:
                 message_thread_id = self.callback_query.message.message_thread_id
         else:
             raise Exception("tgapi: cant send message without chat id")
-        return sendMessage(chat_id, text, message_thread_id, use_markdown, reply_markup)
+        return sendMessage(chat_id, text, message_thread_id, use_markdown, reply_markup, reply_parameters)
 
     def answerCallbackQuery(self, text: str = None, show_alert: bool = False, url: str = None, cache_time: int = 0):
         if self.callback_query is None:

@@ -9,10 +9,10 @@ token_webhook = ""
 url = ""
 
 
-def setup():
+def setup(token_path="token.txt"):
     global token_bot, token_webhook, url
     try:
-        with open("token.txt") as f:
+        with open(token_path) as f:
             token_bot = f.readline().strip()
             token_webhook = f.readline().strip()
             url = f.readline().strip()

@@ -1,4 +1,3 @@
-from sqlalchemy.orm import Session
 import tgapi
 from bot.bot import Bot
 from data.msg import Msg
@@ -7,7 +6,13 @@ from data.queue_user import QueueUser
 from utils import parse_int
 
 
-def updateQueue(bot: Bot, queue: Queue, update_cur = True):
+class updateQueueLoudness:
+    silent = 0
+    quiet = 1
+    loud = 2
+
+
+def updateQueue(bot: Bot, queue: Queue, loudness = updateQueueLoudness.loud):
     txt = f"📝 Очередь {queue.name}:\n"
     txt += "-" * (len(txt) - 2) + "\n"
     qus = QueueUser.all_in_queue(bot.db_sess, queue.id)
@@ -21,7 +26,8 @@ def updateQueue(bot: Bot, queue: Queue, update_cur = True):
         for i, qu in enumerate(qus):
             user = qu.user
             txt += f"{i+1}) @{user.username}\n"
-        if update_cur:
+
+        if loudness >= updateQueueLoudness.quiet:
             if len(qus) > 1:
                 txt_next = f"🎞 Следующие в очереди {queue.name}\n🥇-> @{qus[0].user.username}\n🥈-> @{qus[1].user.username}"
                 if len(qus) == 3:
@@ -30,20 +36,29 @@ def updateQueue(bot: Bot, queue: Queue, update_cur = True):
                     txt_next += f"\n💤 И ещё {len(qus) - 2} ждущих"
             else:
                 txt_next = f"🎞 Следующий в очереди {queue.name}\n🥇-> @{qus[0].user.username}"
-            if queue.msg_next is not None:
-                tgapi.deleteMessage(queue.msg_next.chat_id, queue.msg_next.message_id)
-                queue.msg_next = None
+
             btns = []
             if len(qus) > 1:
                 btns.append(tgapi.InlineKeyboardButton.callback("Пропустить 1", f"queue_pass {queue.id}"))
             btns.append(tgapi.InlineKeyboardButton.callback("Выйти", f"queue_exit {queue.id}"))
             if len(qus) > 2:
                 btns.append(tgapi.InlineKeyboardButton.callback("Уйти в конец", f"queue_end {queue.id}"))
-            ok, r = bot.sendMessage(txt_next, reply_markup=tgapi.InlineKeyboardMarkup([btns]), message_thread_id=queue.msg.message_thread_id)
-            if not ok:
-                return "Error!"
-            queue.msg_next = Msg.new_from_data(bot.user, r)
-            bot.db_sess.commit()
+
+            if loudness >= updateQueueLoudness.loud:
+                if queue.msg_next is not None:
+                    tgapi.deleteMessage(queue.msg_next.chat_id, queue.msg_next.message_id)
+                    queue.msg_next = None
+                ok, r = bot.sendMessage(txt_next,
+                                        reply_markup=tgapi.InlineKeyboardMarkup([btns]),
+                                        message_thread_id=queue.msg.message_thread_id,
+                                        reply_parameters=tgapi.ReplyParameters(queue.msg.message_id))
+                if not ok:
+                    return "Error!"
+                queue.msg_next = Msg.new_from_data(bot.user, r)
+                bot.db_sess.commit()
+            else:
+                if queue.msg_next is not None:
+                    tgapi.editMessageText(queue.msg_next.chat_id, queue.msg_next.message_id, txt_next, reply_markup=tgapi.InlineKeyboardMarkup([btns]))
 
     tgapi.editMessageText(queue.msg.chat_id, queue.msg.message_id, txt, reply_markup=tgapi.InlineKeyboardMarkup([[
         tgapi.InlineKeyboardButton.callback("Встать", f"queue_enter {queue.id}"),
@@ -84,27 +99,33 @@ class update_queue_msg_if_changes():
 
     def __enter__(self):
         self.first, self.second = QueueUser.first2_in_queue(self.bot.db_sess, self.queue.id)
-        # TODO
-        # self.count = QueueUser.count_in_queue(self.bot.db_sess, self.queue.id)
+        self.count = QueueUser.count_in_queue(self.bot.db_sess, self.queue.id)
         return self
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
         first, second = QueueUser.first2_in_queue(self.bot.db_sess, self.queue.id)
-        changes = False
+        count = QueueUser.count_in_queue(self.bot.db_sess, self.queue.id)
+        big_changes = False
         pfirst_None = self.first is None
         nfirst_None = first is None
         psecond_None = self.second is None
         nsecond_None = self.second is None
         if not pfirst_None and not nfirst_None:
             if self.first.user_id != first.user_id:
-                changes = True
+                big_changes = True
         else:
             if pfirst_None != nfirst_None:
-                changes = True
+                big_changes = True
         if not psecond_None and not nsecond_None:
             if self.second.user_id != second.user_id:
-                changes = True
+                big_changes = True
         else:
             if psecond_None != nsecond_None:
-                changes = True
-        updateQueue(self.bot, self.queue, changes)
+                big_changes = True
+        count_changed = self.count != count
+        silence = updateQueueLoudness.silent
+        if count_changed:
+            silence = updateQueueLoudness.quiet
+        if big_changes:
+            silence = updateQueueLoudness.loud
+        updateQueue(self.bot, self.queue, silence)

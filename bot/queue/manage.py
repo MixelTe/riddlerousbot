@@ -38,3 +38,14 @@ def new_queue(bot: Bot, args: list[str]):
 
     updateQueue(bot, queue)
     return f"✏ Очередь {queue.name} очищена"
+
+
+@Bot.add_command("queue_force_update", (None, "Обновить очередь"))
+@Bot.cmd_connect_db
+@Bot.cmd_for_admin
+def new_queue(bot: Bot, args: list[str]):
+    queue, err = get_queue_by_reply(bot)
+    if err:
+        return err
+
+    updateQueue(bot, queue)

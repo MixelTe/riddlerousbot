@@ -270,3 +270,11 @@ class BotCommandScope(JsonObj):
         scope.chat_id = chat_id
         scope.user_id = user_id
         return scope
+
+
+class ReplyParameters(JsonObj):
+    # https://core.telegram.org/bots/api#replyparameters
+    message_id: int
+
+    def __init__(self, message_id: int):
+        self.message_id = message_id

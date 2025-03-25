@@ -5,7 +5,7 @@ from bot.main import process_update, setup_bot
 import tgapi
 
 
-tgapi.setup()
+tgapi.setup("token_dev.txt" if __name__ == "__main__" else "token.txt")
 setup_bot()
 app, run = create_app(__name__, AppConfig(
     MESSAGE_TO_FRONTEND="",

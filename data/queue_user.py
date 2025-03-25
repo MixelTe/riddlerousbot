@@ -53,6 +53,10 @@ class QueueUser(SqlAlchemyBase):
         return None, None
 
     @staticmethod
+    def count_in_queue(db_sess: Session, queue_id: int):
+        return db_sess.query(QueueUser).filter(QueueUser.queue_id == queue_id).count()
+
+    @staticmethod
     def delete_all_in_queue(db_sess: Session, queue_id: int):
         db_sess.query(QueueUser).filter(QueueUser.queue_id == queue_id).delete()
 
