@@ -1,6 +1,6 @@
 from bfs import Log, get_datetime_now
 from bot.bot import Bot
-from bot.queue.utils import get_queue, get_queue_by_reply, updateQueue
+from bot.queue.utils import get_queue, get_queue_by_reply, updateQueue, updateQueueLoudness
 from data.queue_user import QueueUser
 from data.queue import Queue
 
@@ -23,7 +23,7 @@ def new_queue(bot: Bot, args: list[str]):
     queue.name = name
     Log.updated(queue, bot.user, [("name", old_name, name)])
 
-    updateQueue(bot, queue)
+    updateQueue(bot, queue, updateQueueLoudness.quiet)
     return f"✏ Имя очереди {old_name} обновлено на очередь {name}"
 
 
@@ -49,4 +49,4 @@ def queue_force_update(bot: Bot, args: list[str]):
     if err:
         return err
 
-    updateQueue(bot, queue)
+    updateQueue(bot, queue, updateQueueLoudness.scream)

@@ -1,3 +1,4 @@
+import math
 import tgapi
 from bot.bot import Bot
 from data.msg import Msg
@@ -14,8 +15,18 @@ class updateQueueLoudness:
 
 
 def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
+    if loudness >= updateQueueLoudness.scream:
+        tgapi.deleteMessage(queue.msg.chat_id, queue.msg.message_id)
+        ok, r = bot.sendMessage(f"📝 Очередь {queue.name}:\n⏳ Обновление...")
+        if not ok:
+            return "Error!"
+
+        queue.msg = Msg.new_from_data(bot.user, r)
+        bot.db_sess.commit()
+        tgapi.pinChatMessage(r.chat.id, r.message_id)
+
     txt = f"📝 Очередь {queue.name}:\n"
-    txt += "-" * (len(txt) - 2) + "\n"
+    txt += "-" * math.floor(len(txt) * 1.8) + "\n"
     qus = QueueUser.all_in_queue(bot.db_sess, queue.id)
     if len(qus) == 0:
         txt += "Никого в очереди"
@@ -44,10 +55,10 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
 
             btns = []
             if len(qus) > 1:
-                btns.append(tgapi.InlineKeyboardButton.callback("Пропустить 1", f"queue_pass {queue.id}"))
-            btns.append(tgapi.InlineKeyboardButton.callback("Выйти", f"queue_exit {queue.id}"))
+                btns.append(tgapi.InlineKeyboardButton.callback("🎭 Пропуск", f"queue_pass {queue.id}"))
+            btns.append(tgapi.InlineKeyboardButton.callback("🔴 Выйти", f"queue_exit {queue.id}"))
             if len(qus) > 2:
-                btns.append(tgapi.InlineKeyboardButton.callback("Уйти в конец", f"queue_end {queue.id}"))
+                btns.append(tgapi.InlineKeyboardButton.callback("💫 В конец", f"queue_end {queue.id}"))
 
             if loudness >= updateQueueLoudness.loud:
                 if queue.msg_next is not None:
@@ -66,18 +77,9 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
                     tgapi.editMessageText(queue.msg_next.chat_id, queue.msg_next.message_id,
                                           txt_next, reply_markup=tgapi.InlineKeyboardMarkup([btns]))
 
-    if loudness >= updateQueueLoudness.scream:
-        ok, r = bot.sendMessage(f"📝 Очередь {queue.name}:\n⏳ Обновление...")
-        if not ok:
-            return "Error!"
-
-        queue.msg = Msg.new_from_data(bot.user, r)
-        bot.db_sess.commit()
-        tgapi.pinChatMessage(r.chat.id, r.message_id)
-
     tgapi.editMessageText(queue.msg.chat_id, queue.msg.message_id, txt, reply_markup=tgapi.InlineKeyboardMarkup([[
-        tgapi.InlineKeyboardButton.callback("Встать", f"queue_enter {queue.id}"),
-        tgapi.InlineKeyboardButton.callback("Выйти", f"queue_exit {queue.id}"),
+        tgapi.InlineKeyboardButton.callback("🟢 Встать", f"queue_enter {queue.id}"),
+        tgapi.InlineKeyboardButton.callback("🔴 Выйти", f"queue_exit {queue.id}"),
     ]]))
 
 
