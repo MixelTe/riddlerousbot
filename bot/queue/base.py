@@ -1,6 +1,6 @@
 from bfs import get_datetime_now
 from bot.bot import Bot
-from bot.queue.utils import get_queue, updateQueue
+from bot.queue.utils import get_queue, update_queue_msg_if_changes, updateQueue
 from data.queue_user import QueueUser
 from data.queue import Queue
 from utils import find
@@ -32,8 +32,8 @@ def queue_enter(bot: Bot, args: list[str]):
     if qu is not None:
         return "Уже в очереди"
 
-    QueueUser.new(bot.db_sess, queue.id, bot.user.id)
-    updateQueue(bot, queue)
+    with update_queue_msg_if_changes(bot, queue):
+        QueueUser.new(bot.db_sess, queue.id, bot.user.id)
     return "Вы встали в очередь"
 
 
@@ -48,8 +48,8 @@ def queue_exit(bot: Bot, args: list[str]):
     if qu is None:
         return "Уже не в очереди"
 
-    qu.delete()
-    updateQueue(bot, queue)
+    with update_queue_msg_if_changes(bot, queue):
+        qu.delete()
     return "Вы вышли из очереди"
 
 
@@ -71,9 +71,9 @@ def queue_pass(bot: Bot, args: list[str]):
 
     next_qu = qus[qui + 1]
 
-    qu.enter_date, next_qu.enter_date = next_qu.enter_date, qu.enter_date
-    bot.db_sess.commit()
-    updateQueue(bot, queue)
+    with update_queue_msg_if_changes(bot, queue):
+        qu.enter_date, next_qu.enter_date = next_qu.enter_date, qu.enter_date
+        bot.db_sess.commit()
     return "Вы пропустили одного"
 
 
@@ -85,11 +85,11 @@ def queue_end(bot: Bot, args: list[str]):
         return err
 
     qu = QueueUser.get(bot.db_sess, queue.id, bot.user.id)
-    if qu is None:
-        QueueUser.new(bot.db_sess, queue.id, bot.user.id)
-    else:
-        qu.enter_date = get_datetime_now()
-        bot.db_sess.commit()
+    with update_queue_msg_if_changes(bot, queue):
+        if qu is None:
+            QueueUser.new(bot.db_sess, queue.id, bot.user.id)
+        else:
+            qu.enter_date = get_datetime_now()
+            bot.db_sess.commit()
 
-    updateQueue(bot, queue)
     return "Вы встали в конец"

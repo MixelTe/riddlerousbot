@@ -44,6 +44,15 @@ class QueueUser(SqlAlchemyBase):
         return db_sess.query(QueueUser).filter(QueueUser.queue_id == queue_id).order_by(QueueUser.enter_date).all()
 
     @staticmethod
+    def first2_in_queue(db_sess: Session, queue_id: int):
+        r = db_sess.query(QueueUser).filter(QueueUser.queue_id == queue_id).order_by(QueueUser.enter_date).limit(2).all()
+        if len(r) == 2:
+            return r[0], r[1]
+        if len(r) == 1:
+            return r[0], None
+        return None, None
+
+    @staticmethod
     def delete_all_in_queue(db_sess: Session, queue_id: int):
         db_sess.query(QueueUser).filter(QueueUser.queue_id == queue_id).delete()
 

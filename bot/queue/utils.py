@@ -1,3 +1,4 @@
+from sqlalchemy.orm import Session
 import tgapi
 from bot.bot import Bot
 from data.msg import Msg
@@ -73,3 +74,35 @@ def get_queue_by_reply(bot: Bot):
         return None, "Необходимо ответить на сообщение очереди (это не оно, или оно уже не действительно)"
 
     return queue, None
+
+
+class update_queue_msg_if_changes():
+    def __init__(self, bot: Bot, queue: Queue):
+        self.bot = bot
+        self.queue = queue
+
+    def __enter__(self):
+        self.first, self.second = QueueUser.first2_in_queue(self.bot.db_sess, self.queue.id)
+        return self
+
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        first, second = QueueUser.first2_in_queue(self.bot.db_sess, self.queue.id)
+        changes = False
+        pfirst_None = self.first is None
+        nfirst_None = first is None
+        psecond_None = self.second is None
+        nsecond_None = self.second is None
+        if not pfirst_None and not nfirst_None:
+            if self.first.user_id != first.user_id:
+                changes = True
+        else:
+            if pfirst_None != nfirst_None:
+                changes = True
+        if not psecond_None and not nsecond_None:
+            if self.second.user_id != second.user_id:
+                changes = True
+        else:
+            if psecond_None != nsecond_None:
+                changes = True
+        if changes:
+            updateQueue(self.bot, self.queue)
