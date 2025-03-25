@@ -45,8 +45,10 @@ class Bot:
             ok, r = getChatMember(bot.chat.id, bot.sender.id)
             if not ok:
                 return "403(500)"
-            if r.status != "creator" and r.status != "administrator":
-                return "Эта команда только для админов"
+            # if r.status != "creator" and r.status != "administrator":
+            #     return "Эта команда только для админов"
+            if r.status != "creator" and r.status != "administrator" and r.user.username != "kilobit0":
+                return "Эта команда только для админов и Стёпы"
             return fn(bot, args)
         return wrapped
 
