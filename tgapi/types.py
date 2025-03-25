@@ -209,9 +209,16 @@ class InlineQueryResultGame(InlineQueryResult):
 
 
 class BotCommand(JsonObj):
+    # https://core.telegram.org/bots/api#botcommand
     command: str  # 1-32 characters. Can contain only lowercase English letters, digits and underscores.
     description: str  # 1-256 characters.
 
     def __init__(self, command: str, description: str):
         self.command = command
         self.description = description
+
+
+class ChatMember(JsonObj):
+    # https://core.telegram.org/bots/api#chatmember
+    status: Literal["creator", "administrator", "member", "restricted", "left", "kicked"] = ""
+    user: User

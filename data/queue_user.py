@@ -43,6 +43,10 @@ class QueueUser(SqlAlchemyBase):
     def all_in_queue(db_sess: Session, queue_id: int):
         return db_sess.query(QueueUser).filter(QueueUser.queue_id == queue_id).order_by(QueueUser.enter_date).all()
 
+    @staticmethod
+    def delete_all_in_queue(db_sess: Session, queue_id: int):
+        db_sess.query(QueueUser).filter(QueueUser.queue_id == queue_id).delete()
+
     def delete(self):
         db_sess = Session.object_session(self)
         db_sess.delete(self)

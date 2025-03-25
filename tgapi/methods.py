@@ -128,10 +128,21 @@ def answerCallbackQuery(
 
 # https://core.telegram.org/bots/api#setmycommands
 def setMyCommands(commands: list[BotCommand], scope=None, language_code=None):
-    ok, r = call("setmycommands", {
+    ok, r = call("setMyCommands", {
         "commands": commands,
         "scope": scope,
         "language_code": language_code,
+    })
+    if not ok:
+        return False, r
+    return True, r["result"]
+
+
+# https://core.telegram.org/bots/api#getchatmember
+def getChatMember(chat_id: Union[str, int], user_id: int):
+    ok, r = call("getChatMember", {
+        "chat_id": chat_id,
+        "user_id": user_id,
     })
     if not ok:
         return False, r

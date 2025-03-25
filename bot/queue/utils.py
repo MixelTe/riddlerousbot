@@ -62,3 +62,14 @@ def get_queue(bot: Bot, args: list[str]):
         return None, f"queue with id={id} doesnt exist"
 
     return queue, None
+
+
+def get_queue_by_reply(bot: Bot):
+    if not bot.message or not bot.message.reply_to_message:
+        return None, "Укажите очередь, ответив на неё"
+
+    queue = Queue.get_by_message(bot.db_sess, bot.message.reply_to_message)
+    if not queue:
+        return None, "Необходимо ответить на сообщение очереди (это не оно, или оно уже не действительно)"
+
+    return queue, None
