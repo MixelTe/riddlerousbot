@@ -21,6 +21,7 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
         if not ok:
             return "Error!"
 
+        bot.db_sess.delete(queue.msg)
         queue.msg = Msg.new_from_data(bot.user, r)
         bot.db_sess.commit()
         tgapi.pinChatMessage(r.chat.id, r.message_id)
@@ -31,6 +32,7 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
     if len(qus) == 0:
         txt += "Никого в очереди"
         if queue.msg_next is not None:
+            bot.db_sess.delete(queue.msg_next)
             tgapi.deleteMessage(queue.msg_next.chat_id, queue.msg_next.message_id)
             queue.msg_next = None
             bot.db_sess.commit()
@@ -62,6 +64,7 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
 
             if loudness >= updateQueueLoudness.loud:
                 if queue.msg_next is not None:
+                    bot.db_sess.delete(queue.msg_next)
                     tgapi.deleteMessage(queue.msg_next.chat_id, queue.msg_next.message_id)
                     queue.msg_next = None
                 ok, r = bot.sendMessage(txt_next,

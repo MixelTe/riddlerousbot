@@ -5,6 +5,9 @@ from data.queue_user import QueueUser
 from data.queue import Queue
 
 # TODO: edit queue methods
+# delete from queue by № or username
+# create/edit queue by list of usernames
+# add user to queue by username
 
 
 @Bot.add_command("queue_rename", (None, "Переименновать очередь"))
