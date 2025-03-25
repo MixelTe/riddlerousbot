@@ -132,6 +132,7 @@ def setLogging():
     logger.addHandler(file_handler_info)
 
     logger_requests = get_logger_requests()
+    logger_requests.setLevel(logging.DEBUG)
     formatter_req = RequestFormatter("%(req_id)s;%(ip_emoji)s;%(uid)-6s;%(asctime)s;%(method)s;%(url)s;%(levelname)s;%(message)s")
     formatter_req.max_msg_len = 1024
     file_handler_req = RotatingFileHandler(
@@ -142,6 +143,7 @@ def setLogging():
     logger_requests.addHandler(file_handler_req)
 
     logger_frontend = get_logger_frontend()
+    logger_frontend.setLevel(logging.DEBUG)
     formatter_frontend = RequestFormatter("[%(asctime)s] %(ip_emoji)s (uid=%(uid)s):\n%(json)s\n%(message)s\n")
     formatter_frontend.max_json_len = -1
     formatter_frontend.json_indent = 4
