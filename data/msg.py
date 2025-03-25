@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import Column, DateTime, Integer, String
+from sqlalchemy import Column, DateTime, Integer, BigInteger, String
 from sqlalchemy.orm import Session
 
 from bfs import SqlAlchemyBase, IdMixin, Log
@@ -14,7 +14,7 @@ class Msg(SqlAlchemyBase, IdMixin):
 
     message_id = Column(Integer, nullable=False)
     message_thread_id = Column(Integer, nullable=True)
-    chat_id = Column(Integer, nullable=False)
+    chat_id = Column(BigInteger, nullable=False)
     text = Column(String(256))
     date = Column(DateTime)
 
