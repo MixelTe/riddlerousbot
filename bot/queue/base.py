@@ -3,6 +3,7 @@ from bot.bot import Bot
 from bot.queue.utils import get_queue, update_queue_msg_if_changes, updateQueue
 from data.queue_user import QueueUser
 from data.queue import Queue
+import tgapi
 from utils import find
 
 
@@ -18,6 +19,7 @@ def queue_new(bot: Bot, args: list[str]):
         return "Error!"
 
     queue = Queue.new_by_message(bot.user, r, name)
+    tgapi.pinChatMessage(r.chat.id, r.message_id)
     updateQueue(bot, queue)
 
 

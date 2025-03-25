@@ -149,3 +149,15 @@ def getChatMember(chat_id: Union[str, int], user_id: int):
     if not ok:
         return False, r
     return True, ChatMember(r["result"])
+
+
+# https://core.telegram.org/bots/api#pinchatmessage
+def pinChatMessage(chat_id: Union[str, int], message_id: int, disable_notification=True):
+    ok, r = call("pinChatMessage", {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "disable_notification": disable_notification,
+    })
+    if not ok:
+        return False, r
+    return True, r["result"]

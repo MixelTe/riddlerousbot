@@ -10,6 +10,7 @@ class updateQueueLoudness:
     silent = 0
     quiet = 1
     loud = 2
+    scream = 3
 
 
 def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
@@ -25,7 +26,11 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
     else:
         for i, qu in enumerate(qus):
             user = qu.user
-            txt += f"{i+1}) @{user.username}\n"
+            if user.username == "":
+                username = f"🥷 {user.first_name} {user.last_name}"
+            else:
+                username = f"@{user.username}"
+            txt += f"{i+1}) {username}\n"
 
         if loudness >= updateQueueLoudness.quiet:
             if len(qus) > 1:
@@ -60,6 +65,15 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
                 if queue.msg_next is not None:
                     tgapi.editMessageText(queue.msg_next.chat_id, queue.msg_next.message_id,
                                           txt_next, reply_markup=tgapi.InlineKeyboardMarkup([btns]))
+
+    if loudness >= updateQueueLoudness.scream:
+        ok, r = bot.sendMessage(f"📝 Очередь {queue.name}:\n⏳ Обновление...")
+        if not ok:
+            return "Error!"
+
+        queue.msg = Msg.new_from_data(bot.user, r)
+        bot.db_sess.commit()
+        tgapi.pinChatMessage(r.chat.id, r.message_id)
 
     tgapi.editMessageText(queue.msg.chat_id, queue.msg.message_id, txt, reply_markup=tgapi.InlineKeyboardMarkup([[
         tgapi.InlineKeyboardButton.callback("Встать", f"queue_enter {queue.id}"),
@@ -107,21 +121,17 @@ class update_queue_msg_if_changes():
         first, second = QueueUser.first2_in_queue(self.bot.db_sess, self.queue.id)
         count = QueueUser.count_in_queue(self.bot.db_sess, self.queue.id)
         big_changes = False
-        pfirst_None = self.first is None
-        nfirst_None = first is None
-        psecond_None = self.second is None
-        nsecond_None = self.second is None
-        if not pfirst_None and not nfirst_None:
+        if self.first is not None and first is not None:
             if self.first.user_id != first.user_id:
                 big_changes = True
         else:
-            if pfirst_None != nfirst_None:
+            if self.first is None != first is None:
                 big_changes = True
-        if not psecond_None and not nsecond_None:
+        if self.second is not None and second is not None:
             if self.second.user_id != second.user_id:
                 big_changes = True
         else:
-            if psecond_None != nsecond_None:
+            if self.second is None != second is None:
                 big_changes = True
         count_changed = self.count != count
         silence = updateQueueLoudness.silent
