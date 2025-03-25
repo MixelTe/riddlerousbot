@@ -10,18 +10,18 @@ from utils import parse_int
 def updateQueue(bot: Bot, queue: Queue, update_cur = True):
     txt = f"📝 Очередь {queue.name}:\n"
     txt += "-" * (len(txt) - 2) + "\n"
-    if update_cur:
-        qus = QueueUser.all_in_queue(bot.db_sess, queue.id)
-        if len(qus) == 0:
-            txt += "Никого в очереди"
-            if queue.msg_next is not None:
-                tgapi.deleteMessage(queue.msg_next.chat_id, queue.msg_next.message_id)
-                queue.msg_next = None
-                bot.db_sess.commit()
-        else:
-            for i, qu in enumerate(qus):
-                user = qu.user
-                txt += f"{i+1}) @{user.username}\n"
+    qus = QueueUser.all_in_queue(bot.db_sess, queue.id)
+    if len(qus) == 0:
+        txt += "Никого в очереди"
+        if queue.msg_next is not None:
+            tgapi.deleteMessage(queue.msg_next.chat_id, queue.msg_next.message_id)
+            queue.msg_next = None
+            bot.db_sess.commit()
+    else:
+        for i, qu in enumerate(qus):
+            user = qu.user
+            txt += f"{i+1}) @{user.username}\n"
+        if update_cur:
             if len(qus) > 1:
                 txt_next = f"🎞 Следующие в очереди {queue.name}\n🥇-> @{qus[0].user.username}\n🥈-> @{qus[1].user.username}"
                 if len(qus) == 3:
@@ -84,6 +84,8 @@ class update_queue_msg_if_changes():
 
     def __enter__(self):
         self.first, self.second = QueueUser.first2_in_queue(self.bot.db_sess, self.queue.id)
+        # TODO
+        # self.count = QueueUser.count_in_queue(self.bot.db_sess, self.queue.id)
         return self
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
