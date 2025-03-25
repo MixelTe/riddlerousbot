@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from bfs import SqlAlchemyBase, IdMixin, Log
 from data._tables import Tables
+from data.user import User
 import tgapi
 
 
@@ -18,21 +19,22 @@ class Msg(SqlAlchemyBase, IdMixin):
     date = Column(DateTime)
 
     @staticmethod
-    def new(db_sess: Session, message_id: int, chat_id: int, message_thread_id: int = None):
+    def new(creator: User, message_id: int, chat_id: int, message_thread_id: int = None):
+        db_sess = Session.object_session(creator)
         msg = Msg(message_id=message_id, chat_id=chat_id, message_thread_id=message_thread_id)
 
         db_sess.add(msg)
-        Log.added(msg, None, [
+        Log.added(msg, creator, [
             ("message_id", message_id),
             ("chat_id", chat_id),
             ("message_thread_id", message_thread_id),
-        ], db_sess=db_sess)
+        ])
 
         return msg
 
     @staticmethod
-    def new_from_data(db_sess: Session, data: tgapi.Message):
-        return Msg.new(db_sess, data.message_id, data.chat.id, data.message_thread_id)
+    def new_from_data(creator: User, data: tgapi.Message):
+        return Msg.new(creator, data.message_id, data.chat.id, data.message_thread_id)
 
     def get_dict(self):
         return self.to_dict(only=("id", "message_id", "chat_id", "text", "date"))

@@ -99,7 +99,7 @@ class Bot:
         chat_id = None
         if self.message:
             chat_id = self.message.chat.id
-            if message_thread_id is None:
+            if message_thread_id is None and self.message.is_topic_message:
                 message_thread_id = self.message.message_thread_id
         elif self.callback_query:
             chat_id = self.callback_query.message.chat.id

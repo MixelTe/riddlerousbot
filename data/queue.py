@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from bfs import SqlAlchemyBase, IdMixin, Log
 from data._tables import Tables
 from data.msg import Msg
+from data.user import User
 import tgapi
 
 
@@ -25,21 +26,29 @@ class Queue(SqlAlchemyBase, IdMixin):
         msg_next: Msg
 
     @staticmethod
-    def new(db_sess: Session, msg_id: int, name: str):
+    def new(creator: User, msg_id: int, name: str):
+        db_sess = Session.object_session(creator)
         queue = Queue(msg_id=msg_id, name=name)
 
         db_sess.add(queue)
-        Log.added(queue, None, [
+        Log.added(queue, creator, [
             ("msg_id", msg_id),
             ("name", name),
-        ], db_sess=db_sess)
+        ])
 
         return queue
 
     @staticmethod
-    def new_by_message(db_sess: Session, message: tgapi.Message, name: str):
-        msg = Msg.new_from_data(db_sess, message)
-        return Queue.new(db_sess, msg.id, name)
+    def new_by_message(creator: User, message: tgapi.Message, name: str):
+        msg = Msg.new_from_data(creator, message)
+        return Queue.new(creator, msg.id, name)
+
+    @staticmethod
+    def get_by_message(db_sess: Session, message: tgapi.Message):
+        return (db_sess.query(Queue)
+                .join(Msg, Msg.id == Queue.msg_id)
+                .where(Msg.message_id == message.message_id)
+                .first())
 
     def get_dict(self):
         return self.to_dict(only=("id", "msg_id", "name"))

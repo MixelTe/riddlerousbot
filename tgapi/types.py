@@ -29,12 +29,16 @@ class Message(ParsedJson):
     message_thread_id: int = None
     sender: User = None
     chat: Chat = None
+    reply_to_message: "Message" = None
+    is_topic_message: bool = False
     text: str = ""
     date: int = 0
 
     def _parse_field(self, key: str, v: Any):
         if key == "from":
             return "sender", User(v)
+        if key == "reply_to_message":
+            return "reply_to_message", Message(v)
 
 
 class InlineQuery(ParsedJson):
