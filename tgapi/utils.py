@@ -5,15 +5,17 @@ import requests
 
 
 token_bot = ""
+bot_name = ""
 token_webhook = ""
 url = ""
 
 
 def setup(token_path="token.txt"):
-    global token_bot, token_webhook, url
+    global token_bot, bot_name, token_webhook, url
     try:
         with open(token_path) as f:
             token_bot = f.readline().strip()
+            bot_name = f.readline().strip()
             token_webhook = f.readline().strip()
             url = f.readline().strip()
     except Exception as e:
@@ -27,6 +29,10 @@ def check_webhook_token(token: str):
 
 def get_url(path):
     return url + path
+
+
+def get_bot_name():
+    return bot_name
 
 
 def call(method: str, json: Union["JsonObj", dict[str, Any]] = None, timeout: int = None):

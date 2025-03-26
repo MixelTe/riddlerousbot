@@ -1,4 +1,6 @@
 from typing import Callable, Tuple, Union
+
+from tgapi import get_bot_name
 from .types import *
 from .methods import *
 
@@ -103,7 +105,7 @@ class Bot:
             if r:
                 if isinstance(r, str):
                     self.sendMessage(r)
-            else:
+            elif r is False:
                 self.sendMessage(self.TextWrongCommand)
         else:
             self.on_message_text()
@@ -115,6 +117,9 @@ class Bot:
         command = args[0]
         mention = command.find("@")
         if mention > 0:
+            bot_name = command[mention:]
+            if bot_name != get_bot_name():
+                return None
             command = command[:mention]
         args = args[1:]
         cmd = self._commands.get(command, None)
