@@ -42,9 +42,17 @@ class User(UserBase):
         return f"<User> [{self.id} {self.id_tg}] {self.username}"
 
     def get_name(self):
+        return " ".join(map(str, (self.first_name, self.last_name)))
+
+    def get_username(self):
         if self.username != "":
             return self.username
-        return f"${self.id_tg}"
+        return " ".join(map(str, (self.first_name, self.last_name)))
+
+    def get_tagname(self):
+        if self.username != "":
+            return f"@{self.username}"
+        return f"🥷 {self.first_name} {self.last_name}"
 
     _is_admin = None
 

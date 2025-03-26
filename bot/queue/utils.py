@@ -38,22 +38,17 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
             bot.db_sess.commit()
     else:
         for i, qu in enumerate(qus):
-            user = qu.user
-            if user.username == "":
-                username = f"🥷 {user.first_name} {user.last_name}"
-            else:
-                username = f"@{user.username}"
-            txt += f"{i+1}) {username}\n"
+            txt += f"{i+1}) {qu.user.get_tagname()}\n"
 
         if loudness >= updateQueueLoudness.quiet:
             if len(qus) > 1:
-                txt_next = f"🎞 Следующие в очереди {queue.name}\n🥇-> @{qus[0].user.username}\n🥈-> @{qus[1].user.username}"
+                txt_next = f"🎞 Следующие в очереди {queue.name}\n🥇-> {qus[0].user.get_tagname()}\n🥈-> {qus[1].user.get_tagname()}"
                 if len(qus) == 3:
                     txt_next += "\n💤 И ещё 1 ждущий"
                 elif len(qus) > 3:
                     txt_next += f"\n💤 И ещё {len(qus) - 2} ждущих"
             else:
-                txt_next = f"🎞 Следующий в очереди {queue.name}\n🥇-> @{qus[0].user.username}"
+                txt_next = f"🎞 Следующий в очереди {queue.name}\n🥇-> {qus[0].user.get_tagname()}"
 
             btns = []
             if len(qus) > 1:

@@ -40,6 +40,21 @@ class QueueUser(SqlAlchemyBase):
         return db_sess.query(QueueUser).filter(QueueUser.queue_id == queue_id, QueueUser.user_id == user_id).first()
 
     @staticmethod
+    def get_by_username(db_sess: Session, queue_id: int, username: str):
+        return (db_sess.query(QueueUser)
+                .join(User, User.id == QueueUser.user_id)
+                .filter(QueueUser.queue_id == queue_id, User.username == username)
+                .first())
+
+    @staticmethod
+    def get_by_order(db_sess: Session, queue_id: int, order: int):
+        return (db_sess.query(QueueUser)
+                .filter(QueueUser.queue_id == queue_id)
+                .order_by(QueueUser.enter_date)
+                .offset(order)
+                .first())
+
+    @staticmethod
     def all_in_queue(db_sess: Session, queue_id: int):
         return db_sess.query(QueueUser).filter(QueueUser.queue_id == queue_id).order_by(QueueUser.enter_date).all()
 

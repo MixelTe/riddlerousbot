@@ -1,8 +1,9 @@
 from bfs import Log, get_datetime_now
 from bot.bot import Bot
-from bot.queue.utils import get_queue, get_queue_by_reply, updateQueue, updateQueueLoudness
+from bot.queue.utils import get_queue, get_queue_by_reply, update_queue_msg_if_changes, updateQueue, updateQueueLoudness
 from data.queue_user import QueueUser
 from data.queue import Queue
+from utils import parse_int
 
 # TODO: edit queue methods
 # delete from queue by № or username
@@ -53,3 +54,35 @@ def queue_force_update(bot: Bot, args: list[str]):
         return err
 
     updateQueue(bot, queue, updateQueueLoudness.scream)
+
+
+@Bot.add_command("queue_kick", (None, "Выпнуть из очереди"))
+@Bot.cmd_connect_db
+@Bot.cmd_for_admin
+def queue_kick(bot: Bot, args: list[str]):
+    queue, err = get_queue_by_reply(bot)
+    if err:
+        return err
+
+    if len(args) < 1:
+        return "Укажите ник или номер человека в очереди\nUsage: /queue_kick <name>\n/queue_kick <number>"
+
+    num = parse_int(args[0])
+    uq = None
+    if num is None:
+        username = args[0]
+        if username.startswith("@"):
+            username = username[1:]
+        uq = QueueUser.get_by_username(bot.db_sess, queue.id, username)
+    elif num - 1 >= 0:
+        uq = QueueUser.get_by_order(bot.db_sess, queue.id, num - 1)
+
+    if uq is None:
+        return "Человек не найден в очереди\nUsage: /queue_kick <name>\n/queue_kick <number>"
+
+    user = uq.user
+    with update_queue_msg_if_changes(bot, queue):
+        uq.delete()
+        bot.db_sess.commit()
+
+    return f"{user.get_tagname()} удалён из очереди {queue.name}"
