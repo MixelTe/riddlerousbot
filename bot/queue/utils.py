@@ -109,7 +109,7 @@ def get_queue_by_reply(bot: Bot):
 
 def silent_mode(bot: Bot, args: list[str]):
     s = False
-    if args[-1] == "/s":
+    if args[-1] == "\\s":
         s = True
         args = args[:-1]
         if bot.message:

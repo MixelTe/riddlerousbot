@@ -26,5 +26,24 @@ class Bot(tgapi.Bot):
         return wrapped
 
 
+@Bot.add_command("help", None)
+def help(bot: Bot, args: list[str]):  # noqa: F811
+    def format_cmd(cmd):
+        cmd, desc = cmd
+        if isinstance(desc, str):
+            return f"/{cmd} - {desc}"
+        desc, hints = desc
+        if isinstance(hints, str):
+            hints = [hints]
+
+        return "\n".join(f"/{cmd} {h}" for h in hints) + f"\n - {desc}"
+
+    txt = "💠 Команды\n\n👥 Для всех:\n"
+    txt += "\n".join(format_cmd(cmd) for cmd in bot.get_my_commands())
+    txt += "\n\n👨‍🔧 Для админов:\n"
+    txt += "\n".join(format_cmd(cmd) for cmd in bot.get_my_commands(True))
+    return txt
+
+
 import bot.queue.base
 import bot.queue.manage

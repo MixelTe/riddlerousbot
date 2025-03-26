@@ -1,19 +1,19 @@
 from bfs import get_datetime_now
 from bot.bot import Bot
-from bot.queue.utils import get_queue, silent_mode, update_queue_msg_if_changes, updateQueue
+from bot.queue.utils import get_queue, get_queue_by_reply, silent_mode, update_queue_msg_if_changes, updateQueue
 from data.queue_user import QueueUser
 from data.queue import Queue
 import tgapi
 from utils import find
 
 
-@Bot.add_command("queue_new", (None, "Создать новую очередь"))
+@Bot.add_command("queue_new", (None, ("Создать новую очередь", "<name> [\\s]")))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
 def queue_new(bot: Bot, args: list[str]):
     args, _ = silent_mode(bot, args)
     if len(args) < 1:
-        return "Укажите имя очереди\nUsage: /queue_new <name> [/s]"
+        return "Укажите имя очереди\nUsage: /queue_new <name> [\\s]"
 
     name = " ".join(args)
     ok, r = bot.sendMessage(f"📝 Очередь {name}:\n⏳ Создание...")

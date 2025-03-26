@@ -3,7 +3,7 @@ from .types import *
 from .methods import *
 
 cmd_fn = Callable[["Bot", list[str]], Union[None, str]]
-cmd_dsc = Union[None, str]
+cmd_dsc = Union[None, str, Tuple[str, str]]
 
 
 class Bot:
@@ -23,9 +23,24 @@ class Bot:
         return self.callback_query is not None
 
     def init(self):
-        setMyCommands([BotCommand(cmd, self._commands[cmd][1][0]) for cmd in self._commands.keys() if self._commands[cmd][1][0]])
-        setMyCommands([BotCommand(cmd, self._commands[cmd][1][1]) for cmd in self._commands.keys()
+        get_cmd = lambda key, i: self._commands[key][1][i] if isinstance(self._commands[key][1][i], str) else self._commands[key][1][i][0]
+        setMyCommands([BotCommand(cmd, get_cmd(cmd, 0)) for cmd in self._commands.keys() if self._commands[cmd][1][0]])
+        setMyCommands([BotCommand(cmd, get_cmd(cmd, 1)) for cmd in self._commands.keys()
                       if self._commands[cmd][1][1]], BotCommandScope.all_chat_administrators())
+
+    def get_my_commands(self, admin_only=False):
+        pub_keys = [key for key in self._commands.keys() if self._commands[key][1][0]]
+        prv_keys = [key for key in self._commands.keys() if self._commands[key][1][1]]
+        if admin_only:
+            keys = prv_keys
+            i = 1
+            for key in pub_keys:
+                if key in keys:
+                    keys.remove(key)
+        else:
+            keys = pub_keys
+            i = 0
+        return [(cmd, self._commands[cmd][1][i]) for cmd in keys]
 
     @classmethod
     def add_command(cls, command: str, description: Union[cmd_dsc, Tuple[cmd_dsc, cmd_dsc]]):
@@ -34,6 +49,8 @@ class Bot:
                 pub, pri = description
             else:
                 pub, pri = description, description
+                if pri is None:
+                    pri = pub
 
             cls._commands[command] = (fn, (pub, pri))
             return fn

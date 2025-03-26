@@ -12,7 +12,7 @@ from utils import parse_int
 # add user to queue by username
 
 
-@Bot.add_command("queue_rename", (None, "Переименновать очередь"))
+@Bot.add_command("queue_rename", (None, ("Переименновать очередь", "<new_name> [\\s]")))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
 def new_queue(bot: Bot, args: list[str]):
@@ -23,7 +23,7 @@ def new_queue(bot: Bot, args: list[str]):
         return err
 
     if len(args) < 1:
-        return "Укажите новое имя очереди\nUsage: /queue_rename <new_name> [/s]"
+        return "Укажите новое имя очереди\nUsage: /queue_rename <new_name> [\\s]"
 
     name = " ".join(args)
 
@@ -66,7 +66,7 @@ def queue_force_update(bot: Bot, args: list[str]):
     updateQueue(bot, queue, updateQueueLoudness.scream)
 
 
-@Bot.add_command("queue_kick", (None, "Выпнуть из очереди"))
+@Bot.add_command("queue_kick", (None, ("Выпнуть из очереди", ["<username> [\\s]", "<number> [\\s]"])))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
 def queue_kick(bot: Bot, args: list[str]):
@@ -77,7 +77,7 @@ def queue_kick(bot: Bot, args: list[str]):
         return err
 
     if len(args) < 1:
-        return "Укажите ник или номер человека в очереди\nUsage: /queue_kick <name> [/s]\n/queue_kick <number> [/s]"
+        return "Укажите ник или номер человека в очереди\nUsage: /queue_kick <username> [\\s]\n/queue_kick <number> [\\s]"
 
     num = parse_int(args[0])
     uq = None
@@ -90,7 +90,7 @@ def queue_kick(bot: Bot, args: list[str]):
         uq = QueueUser.get_by_order(bot.db_sess, queue.id, num - 1)
 
     if uq is None:
-        return "Человек не найден в очереди\nUsage: /queue_kick <name> [/s]\n/queue_kick <number> [/s]"
+        return "Человек не найден в очереди\nUsage: /queue_kick <username> [\\s]\n/queue_kick <number> [\\s]"
 
     user = uq.user
     with update_queue_msg_if_changes(bot, queue):
