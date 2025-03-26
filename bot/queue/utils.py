@@ -130,13 +130,13 @@ class update_queue_msg_if_changes():
             if self.first.user_id != first.user_id:
                 big_changes = True
         else:
-            if self.first is None != first is None:
+            if (self.first is None) != (first is None):
                 big_changes = True
         if self.second is not None and second is not None:
             if self.second.user_id != second.user_id:
                 big_changes = True
         else:
-            if self.second is None != second is None:
+            if (self.second is None) != (second is None):
                 big_changes = True
         count_changed = self.count != count
         silence = updateQueueLoudness.silent
