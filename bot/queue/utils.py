@@ -107,6 +107,16 @@ def get_queue_by_reply(bot: Bot):
     return queue, None
 
 
+def silent_mode(bot: Bot, args: list[str]):
+    s = False
+    if args[-1] == "/s":
+        s = True
+        args = args[:-1]
+        if bot.message:
+            tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
+    return args, s
+
+
 class update_queue_msg_if_changes():
     def __init__(self, bot: Bot, queue: Queue):
         self.bot = bot

@@ -46,7 +46,7 @@ class Queue(SqlAlchemyBase, IdMixin):
     @staticmethod
     def get_by_message(db_sess: Session, message: tgapi.Message):
         return (db_sess.query(Queue)
-                .join(Msg, Msg.id == Queue.msg_id)
+                .join(Msg, (Msg.id == Queue.msg_id) | (Msg.id == Queue.msg_next_id))
                 .where(Msg.message_id == message.message_id)
                 .first())
 
