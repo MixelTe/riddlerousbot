@@ -9,7 +9,7 @@ import tgapi
 class User(UserBase):
     id_tg = Column(BigInteger, index=True, unique=True, nullable=False)
     is_bot = Column(Boolean, DefaultClause("0"), nullable=False)
-    # is_friendly = Column(Boolean, DefaultClause("0"), nullable=False)
+    is_friendly = Column(Boolean, DefaultClause("0"), nullable=False)
     first_name = Column(String(128), nullable=False)
     last_name = Column(String(128), nullable=False)
     username = Column(String(128), nullable=False)

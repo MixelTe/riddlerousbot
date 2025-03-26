@@ -1,6 +1,7 @@
+import logging
 from sqlalchemy.orm import Session
 
-from bfs import db_session
+from bfs import Log, db_session
 from data.user import User
 import tgapi
 
@@ -24,6 +25,20 @@ class Bot(tgapi.Bot):
             finally:
                 db_sess.close()
         return wrapped
+
+    def on_message(self):
+        if self.message.chat.type == "private":
+            db_sess = db_session.create_session()
+            try:
+                user = User.get_by_id_tg(db_sess, self.sender.id)
+                if not user.is_friendly:
+                    user.is_friendly = True
+                    Log.updated(user, user, [("is_friendly", False, True)])
+            except Exception as x:
+                logging.error(x)
+            finally:
+                db_sess.close()
+        super().on_message()
 
 
 @Bot.add_command("help", None)
