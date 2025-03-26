@@ -4,13 +4,14 @@ from bfs import db_session
 from data.user import User
 import tgapi
 
+
 class Bot(tgapi.Bot):
     db_sess: Session = None
     user: User = None
 
     @staticmethod
     def cmd_connect_db(fn):
-        def wrapped(bot: Bot, args: list[str]):
+        def wrapped(bot: Bot, args: list[str]):  # noqa: F811
             db_sess = db_session.create_session()
             bot.db_sess = db_sess
             if bot.sender is not None:
@@ -23,6 +24,7 @@ class Bot(tgapi.Bot):
             finally:
                 db_sess.close()
         return wrapped
+
 
 import bot.queue.base
 import bot.queue.manage

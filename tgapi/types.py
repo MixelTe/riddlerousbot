@@ -221,7 +221,7 @@ class BotCommand(JsonObj):
 class ChatMember(ParsedJson):
     # https://core.telegram.org/bots/api#chatmember
     status: Literal["creator", "administrator", "member", "restricted", "left", "kicked"] = ""
-    user: User
+    user: User = None
 
 
 BotCommandScopeType = Literal["default", "all_private_chats", "all_group_chats",
