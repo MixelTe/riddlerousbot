@@ -9,6 +9,7 @@ import tgapi
 class User(UserBase):
     id_tg = Column(BigInteger, index=True, unique=True, nullable=False)
     is_bot = Column(Boolean, DefaultClause("0"), nullable=False)
+    # is_friendly = Column(Boolean, DefaultClause("0"), nullable=False)
     first_name = Column(String(128), nullable=False)
     last_name = Column(String(128), nullable=False)
     username = Column(String(128), nullable=False)
@@ -71,6 +72,8 @@ class User(UserBase):
 
     @staticmethod
     def get_by_username(db_sess: Session, username: str):
+        if username.startswith("@"):
+            username = username[1:]
         return User.query(db_sess).filter(User.username == username).first()
 
     def get_dict(self):

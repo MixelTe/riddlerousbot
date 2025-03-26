@@ -7,9 +7,7 @@ import tgapi
 from utils import parse_int
 
 # TODO: edit queue methods
-# delete from queue by № or username
 # create/edit queue by list of usernames
-# add user to queue by username
 
 
 @Bot.add_command("queue_rename", (None, ("Переименновать очередь", "<new_name> [\\s]")))
@@ -83,8 +81,6 @@ def queue_kick(bot: Bot, args: list[str]):
     uq = None
     if num is None:
         username = args[0]
-        if username.startswith("@"):
-            username = username[1:]
         uq = QueueUser.get_by_username(bot.db_sess, queue.id, username)
     elif num - 1 >= 0:
         uq = QueueUser.get_by_order(bot.db_sess, queue.id, num - 1)
@@ -98,4 +94,4 @@ def queue_kick(bot: Bot, args: list[str]):
         bot.db_sess.commit()
 
     if not s:
-        return f"{user.get_tagname()} удалён из очереди {queue.name}"
+        return f"🔴 {user.get_tagname()} удалён из очереди {queue.name}"

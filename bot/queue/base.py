@@ -3,6 +3,7 @@ from bot.bot import Bot
 from bot.queue.utils import get_queue, get_queue_by_reply, silent_mode, update_queue_msg_if_changes, updateQueue
 from data.queue_user import QueueUser
 from data.queue import Queue
+from data.user import User
 import tgapi
 from utils import find
 
@@ -97,3 +98,29 @@ def queue_end(bot: Bot, args: list[str]):
             bot.db_sess.commit()
 
     return "Вы встали в конец"
+
+
+@Bot.add_command("queue_add", (("Добавить в очередь", "<username> [\\s]"), None))
+@Bot.cmd_connect_db
+def queue_clear(bot: Bot, args: list[str]):
+    args, s = silent_mode(bot, args)
+
+    queue, err = get_queue_by_reply(bot)
+    if err:
+        return err
+
+    username = args[0]
+    user = User.get_by_username(bot.db_sess, username)
+
+    if not user:
+        return "👻 Этот пользователь не знаком боту (если в имени ошибки нет, пускай он хотя бы раз повзаимодействует с ботом)"
+
+    qu = QueueUser.get(bot.db_sess, queue.id, user.id)
+    if qu is not None:
+        return f"🟢 {user.get_tagname()} уже в очереди {queue.name}"
+
+    with update_queue_msg_if_changes(bot, queue):
+        QueueUser.new(bot.db_sess, queue.id, user.id)
+
+    if not s:
+        return f"🟢 {user.get_tagname()} добавлен в очередь {queue.name}"

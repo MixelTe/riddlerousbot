@@ -41,6 +41,8 @@ class QueueUser(SqlAlchemyBase):
 
     @staticmethod
     def get_by_username(db_sess: Session, queue_id: int, username: str):
+        if username.startswith("@"):
+            username = username[1:]
         return (db_sess.query(QueueUser)
                 .join(User, User.id == QueueUser.user_id)
                 .filter(QueueUser.queue_id == queue_id, User.username == username)
