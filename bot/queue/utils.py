@@ -21,8 +21,9 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
         if not ok:
             return "Error!"
 
-        bot.db_sess.delete(queue.msg)
+        old_msg = queue.msg
         queue.msg = Msg.new_from_data(bot.user, r)
+        bot.db_sess.delete(old_msg)
         bot.db_sess.commit()
         tgapi.pinChatMessage(r.chat.id, r.message_id)
 
