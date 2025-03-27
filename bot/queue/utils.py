@@ -23,7 +23,6 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
 
         old_msg = queue.msg
         queue.msg = Msg.new_from_data(bot.user, r)
-        bot.db_sess.commit()
         bot.db_sess.delete(old_msg)
         bot.db_sess.commit()
         tgapi.pinChatMessage(r.chat.id, r.message_id)
@@ -111,7 +110,7 @@ def get_queue_by_reply(bot: Bot):
 
 def silent_mode(bot: Bot, args: list[str]):
     s = False
-    if args[-1] == "\\s":
+    if len(args) > 0 and args[-1] == "\\s":
         s = True
         args = args[:-1]
         if bot.message:
