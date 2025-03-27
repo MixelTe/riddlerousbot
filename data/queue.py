@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from bfs import SqlAlchemyBase, IdMixin, Log
 from data._tables import Tables
 from data.msg import Msg
+from data.queue_user import QueueUser
 from data.user import User
 import tgapi
 

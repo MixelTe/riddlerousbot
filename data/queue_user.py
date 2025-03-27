@@ -21,6 +21,9 @@ class QueueUser(SqlAlchemyBase):
     if TYPE_CHECKING:
         user: User
 
+    def __repr__(self):
+        return f"<QueueUser> qid={self.queue_id} uid={self.user_id}"
+
     @staticmethod
     def new(db_sess: Session, queue_id: int, user_id: int):
         now = get_datetime_now()

@@ -123,4 +123,4 @@ def queue_clear(bot: Bot, args: list[str]):
         QueueUser.new(bot.db_sess, queue.id, user.id)
 
     if not s:
-        return f"🟢 {user.get_tagname()} добавлен в очередь {queue.name}"
+        return f"🟢 {user.get_tagname()} теперь в очереди {queue.name}"
