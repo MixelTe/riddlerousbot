@@ -52,6 +52,13 @@ class QueueUser(SqlAlchemyBase):
                 .first())
 
     @staticmethod
+    def get_by_user_id(db_sess: Session, queue_id: int, user_id: int):
+        return (db_sess.query(QueueUser)
+                .join(User, User.id == QueueUser.user_id)
+                .filter(QueueUser.queue_id == queue_id, User.id == user_id)
+                .first())
+
+    @staticmethod
     def get_by_order(db_sess: Session, queue_id: int, order: int):
         return (db_sess.query(QueueUser)
                 .filter(QueueUser.queue_id == queue_id)

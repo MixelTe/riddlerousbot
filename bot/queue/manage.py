@@ -90,6 +90,55 @@ def queue_kick(bot: Bot, args: list[str]):
         return "Человек не найден в очереди\nUsage: /queue_kick <username> [\\s]\n/queue_kick <number> [\\s]"
 
     user = uq.user
+
+    if num is not None:
+        bot.sendMessage(f"Удалить {user.get_tagname()} ?", reply_markup=tgapi.InlineKeyboardMarkup([[
+            tgapi.InlineKeyboardButton.callback("🟢 Да", f"queue_kick_cmd + {queue.id} {user.id}" + (" \\s" if s else "")),
+            tgapi.InlineKeyboardButton.callback("🔴 Отмена", f"queue_kick_cmd - {queue.id} {user.id}" + (" \\s" if s else "")),
+        ]]))
+        return
+
+    with update_queue_msg_if_changes(bot, queue):
+        uq.delete()
+        bot.db_sess.commit()
+
+    if not s:
+        return f"🔴 {user.get_tagname()} теперь не в очереди {queue.name}"
+
+
+@Bot.add_command("queue_kick_cmd", None)
+@Bot.cmd_connect_db
+@Bot.cmd_for_admin
+def queue_kick_cmd(bot: Bot, args: list[str]):
+    args, s = silent_mode(bot, args)
+
+    if len(args) < 3:
+        return "not enought args"
+
+    if bot.callback_query and bot.callback_query.message:
+        msg = bot.callback_query.message
+        tgapi.deleteMessage(msg.chat.id, msg.message_id)
+
+    if args[0] == "-":
+        return
+
+    queue_id = parse_int(args[1])
+    user_id = parse_int(args[2])
+
+    if queue_id is None:
+        return "queue_id is None"
+    if user_id is None:
+        return "user_id is None"
+
+    queue = Queue.get(bot.db_sess, queue_id)
+    uq = QueueUser.get_by_user_id(bot.db_sess, queue.id, user_id)
+
+    if queue is None:
+        return "queue not found"
+    if uq is None:
+        return "user not found in queue"
+
+    user = uq.user
     with update_queue_msg_if_changes(bot, queue):
         uq.delete()
         bot.db_sess.commit()
