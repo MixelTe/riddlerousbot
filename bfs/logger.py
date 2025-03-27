@@ -124,6 +124,7 @@ def setLogging():
     logger.addHandler(file_handler_error)
 
     formatter_info = RequestFormatter("%(req_id)s;%(ip_emoji)s;%(uid)-6s;%(asctime)s;%(method)s;%(url)s;%(levelname)s;%(module)s;%(message)s")
+    formatter_info.max_json_len = 4096
     file_handler_info = RotatingFileHandler(
         bfs_config.log_info_path, mode="a", encoding="utf-8", maxBytes=maxBytes)
     file_handler_info.setFormatter(formatter_info)
