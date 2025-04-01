@@ -1,3 +1,4 @@
+from datetime import timedelta
 from bfs import Log, get_datetime_now
 from bot.bot import Bot
 from bot.queue.utils import get_queue, get_queue_by_reply, silent_mode, update_queue_msg_if_changes, updateQueue, updateQueueLoudness
@@ -46,6 +47,7 @@ def queue_clear(bot: Bot, args: list[str]):
         return err
 
     QueueUser.delete_all_in_queue(bot.db_sess, queue.id)
+    bot.db_sess.commit()
 
     updateQueue(bot, queue)
     if not s:
@@ -197,3 +199,46 @@ def queue_add_to(bot: Bot, args: list[str]):
 
     if not s:
         return f"🟢 {user.get_tagname()} теперь в очереди {queue.name} на позиции {qui + 1}"
+
+
+@Bot.add_command("queue_set", (None, ("Полностью изменить очередь", "<username> [...<username>]")))
+@Bot.cmd_connect_db
+@Bot.cmd_for_admin
+def queue_set(bot: Bot, args: list[str]):
+    args, s = silent_mode(bot, args)
+
+    queue, err = get_queue_by_reply(bot)
+    if err:
+        return err
+
+    users: list[User] = []
+    users_not_found: list[str] = []
+    for username in args:
+        user = User.get_by_username(bot.db_sess, username)
+        if user:
+            users.append(user)
+        else:
+            users_not_found.append(username)
+
+    if len(users_not_found) != 0:
+        if len(users_not_found) == 1:
+            txt = f"👻 Этот пользователь не знаком боту: {users_not_found[0]}" + \
+                "\n(если в имени ошибки нет, пускай он хотя бы раз повзаимодействует с ботом)"
+        txt = f"Эти пользователи не знакомы боту: {', '.join(users_not_found)}" + \
+            "\n(если в именах ошибки нет, пускай они хотя бы раз повзаимодействуют с ботом)"
+        bot.sendMessage(txt)
+
+    if len(users) == 0:
+        return
+
+    QueueUser.delete_all_in_queue(bot.db_sess, queue.id)
+    now = get_datetime_now() - timedelta(seconds=len(users))
+    for i, user in enumerate(users):
+        qu = QueueUser.new(bot.db_sess, queue.id, user.id, commit=False)
+        qu.enter_date = now + timedelta(seconds=i)
+
+    bot.db_sess.commit()
+    updateQueue(bot, queue)
+
+    if not s:
+        return f"✏ Очередь {queue.name} изменена"

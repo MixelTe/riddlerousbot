@@ -25,7 +25,7 @@ class QueueUser(SqlAlchemyBase):
         return f"<QueueUser> qid={self.queue_id} uid={self.user_id}"
 
     @staticmethod
-    def new(db_sess: Session, queue_id: int, user_id: int):
+    def new(db_sess: Session, queue_id: int, user_id: int, commit=True):
         now = get_datetime_now()
         qu = QueueUser(queue_id=queue_id, user_id=user_id, enter_date=now)
 
@@ -34,7 +34,7 @@ class QueueUser(SqlAlchemyBase):
             ("queue_id", queue_id),
             ("user_id", user_id),
             ("date", now.isoformat()),
-        ], db_sess=db_sess)
+        ], commit=commit, db_sess=db_sess)
 
         return qu
 
@@ -87,10 +87,10 @@ class QueueUser(SqlAlchemyBase):
     def delete_all_in_queue(db_sess: Session, queue_id: int):
         db_sess.query(QueueUser).filter(QueueUser.queue_id == queue_id).delete()
 
-    def delete(self):
+    def delete(self, commit=True):
         db_sess = Session.object_session(self)
         db_sess.delete(self)
-        Log.deleted(self, None, db_sess=db_sess)
+        Log.deleted(self, None, commit=commit, db_sess=db_sess)
 
     def get_dict(self):
         return self.to_dict(only=("queue_id", "user_id", "date"))
