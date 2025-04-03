@@ -1,7 +1,6 @@
 import math
 import tgapi
 from bot.bot import Bot
-from data.msg import Msg
 from data.queue import Queue
 from data.queue_user import QueueUser
 from utils import parse_int
@@ -21,10 +20,7 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
         if not ok:
             return "Error!"
 
-        old_msg = queue.msg
-        queue.msg = Msg.new_from_data(bot.user, r)
-        bot.db_sess.delete(old_msg)
-        bot.db_sess.commit()
+        queue.update_msg(bot.user, r)
         tgapi.pinChatMessage(r.chat.id, r.message_id)
 
     txt = f"📝 Очередь {queue.name}:\n"
@@ -33,10 +29,8 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
     if len(qus) == 0:
         txt += "Никого в очереди"
         if queue.msg_next is not None:
-            bot.db_sess.delete(queue.msg_next)
             tgapi.deleteMessage(queue.msg_next.chat_id, queue.msg_next.message_id)
-            queue.msg_next = None
-            bot.db_sess.commit()
+            queue.update_msg_next(bot.user, None)
     else:
         for i, qu in enumerate(qus):
             txt += f"{i+1}) {qu.user.get_tagname()}\n"
@@ -60,17 +54,14 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
 
             if loudness >= updateQueueLoudness.loud:
                 if queue.msg_next is not None:
-                    bot.db_sess.delete(queue.msg_next)
                     tgapi.deleteMessage(queue.msg_next.chat_id, queue.msg_next.message_id)
-                    queue.msg_next = None
                 ok, r = bot.sendMessage(txt_next,
                                         reply_markup=tgapi.InlineKeyboardMarkup([btns]),
                                         message_thread_id=queue.msg.message_thread_id,
                                         reply_parameters=tgapi.ReplyParameters(queue.msg.message_id))
                 if not ok:
                     return "Error!"
-                queue.msg_next = Msg.new_from_data(bot.user, r)
-                bot.db_sess.commit()
+                queue.update_msg_next(bot.user, r)
             else:
                 if queue.msg_next is not None:
                     tgapi.editMessageText(queue.msg_next.chat_id, queue.msg_next.message_id,

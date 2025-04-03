@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from sqlalchemy import Column, ForeignKey, Integer, String, orm
 from sqlalchemy.orm import Session
@@ -50,6 +50,26 @@ class Queue(SqlAlchemyBase, IdMixin):
                 .join(Msg, (Msg.id == Queue.msg_id) | (Msg.id == Queue.msg_next_id))
                 .where(Msg.message_id == message.message_id)
                 .first())
+
+    def update_name(self, actor: User, name: str):
+        old_name = self.name
+        self.name = name
+        Log.updated(self, actor, [("name", old_name, name)])
+
+    def update_msg(self, actor: User, message: tgapi.Message):
+        old_msg = self.msg
+        self.msg = Msg.new_from_data(actor, message)
+        old_msg.delete(actor, commit=False)
+        Log.updated(self, actor, [("msg_id", old_msg.id, self.msg.id)])
+
+    def update_msg_next(self, actor: User, message: Union[tgapi.Message, None]):
+        old_msg = self.msg_next
+        if message is None:
+            self.msg_next = None
+        else:
+            self.msg_next = Msg.new_from_data(actor, message)
+        old_msg.delete(actor, commit=False)
+        Log.updated(self, actor, [("msg_next_id", None if old_msg is None else old_msg.id, None if self.msg_next is None else self.msg_next.id)])
 
     def get_dict(self):
         return self.to_dict(only=("id", "msg_id", "name"))

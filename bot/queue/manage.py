@@ -1,15 +1,12 @@
 from datetime import timedelta
-from bfs import Log, get_datetime_now
+from bfs import get_datetime_now
 from bot.bot import Bot
-from bot.queue.utils import get_queue, get_queue_by_reply, silent_mode, update_queue_msg_if_changes, updateQueue, updateQueueLoudness
+from bot.queue.utils import get_queue_by_reply, silent_mode, update_queue_msg_if_changes, updateQueue, updateQueueLoudness
 from data.queue_user import QueueUser
 from data.queue import Queue
 from data.user import User
 import tgapi
 from utils import find, parse_int
-
-# TODO: edit queue methods
-# create/edit queue by list of usernames
 
 
 @Bot.add_command("queue_rename", (None, ("Переименновать очередь", "<new_name> [\\s]")))
@@ -25,11 +22,9 @@ def queue_rename(bot: Bot, args: list[str]):
     if len(args) < 1:
         return "Укажите новое имя очереди\nUsage: /queue_rename <new_name> [\\s]"
 
-    name = " ".join(args)
-
     old_name = queue.name
-    queue.name = name
-    Log.updated(queue, bot.user, [("name", old_name, name)])
+    name = " ".join(args)
+    queue.update_name(bot.user, name)
 
     updateQueue(bot, queue, updateQueueLoudness.quiet)
     if not s:
@@ -46,8 +41,7 @@ def queue_clear(bot: Bot, args: list[str]):
     if err:
         return err
 
-    QueueUser.delete_all_in_queue(bot.db_sess, queue.id)
-    bot.db_sess.commit()
+    QueueUser.delete_all_in_queue(bot.user, queue.id)
 
     updateQueue(bot, queue)
     if not s:
@@ -101,8 +95,7 @@ def queue_kick(bot: Bot, args: list[str]):
         return
 
     with update_queue_msg_if_changes(bot, queue):
-        uq.delete()
-        bot.db_sess.commit()
+        uq.delete(bot.user)
 
     if not s:
         return f"🔴 {user.get_tagname()} теперь не в очереди {queue.name}"
@@ -142,8 +135,7 @@ def queue_kick_cmd(bot: Bot, args: list[str]):
 
     user = uq.user
     with update_queue_msg_if_changes(bot, queue):
-        uq.delete()
-        bot.db_sess.commit()
+        uq.delete(bot.user)
 
     if not s:
         return f"🔴 {user.get_tagname()} теперь не в очереди {queue.name}"
@@ -176,7 +168,7 @@ def queue_add_to(bot: Bot, args: list[str]):
         qus = QueueUser.all_in_queue(bot.db_sess, queue.id)
         qu = find(qus, lambda x: x.user_id == user.id)
         if qu is None:
-            qu = QueueUser.new(bot.db_sess, queue.id, user.id)
+            qu = QueueUser.new(bot.user, queue.id, user.id)
             qus.append(qu)
         qui = qus.index(qu)
 
@@ -185,13 +177,13 @@ def queue_add_to(bot: Bot, args: list[str]):
                 if qui >= len(qus) - 1:
                     break
                 qus[qui], qus[qui + 1] = qus[qui + 1], qus[qui]
-                qus[qui].enter_date, qus[qui + 1].enter_date = qus[qui + 1].enter_date, qus[qui].enter_date
+                QueueUser.swap_enter_date(bot.user, qus[qui], qus[qui + 1], commit=False)
                 qui += 1
             elif qui > pos:
                 if qui <= 0:
                     break
                 qus[qui], qus[qui - 1] = qus[qui - 1], qus[qui]
-                qus[qui].enter_date, qus[qui - 1].enter_date = qus[qui - 1].enter_date, qus[qui].enter_date
+                QueueUser.swap_enter_date(bot.user, qus[qui], qus[qui - 1], commit=False)
                 qui -= 1
             else:
                 break
@@ -231,10 +223,10 @@ def queue_set(bot: Bot, args: list[str]):
     if len(users) == 0:
         return
 
-    QueueUser.delete_all_in_queue(bot.db_sess, queue.id)
+    QueueUser.delete_all_in_queue(bot.user, queue.id)
     now = get_datetime_now() - timedelta(seconds=len(users))
     for i, user in enumerate(users):
-        qu = QueueUser.new(bot.db_sess, queue.id, user.id, commit=False)
+        qu = QueueUser.new(bot.user, queue.id, user.id, commit=False)
         qu.enter_date = now + timedelta(seconds=i)
 
     bot.db_sess.commit()

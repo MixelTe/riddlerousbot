@@ -25,12 +25,13 @@ class QueueUser(SqlAlchemyBase):
         return f"<QueueUser> qid={self.queue_id} uid={self.user_id}"
 
     @staticmethod
-    def new(db_sess: Session, queue_id: int, user_id: int, commit=True):
+    def new(creator: User, queue_id: int, user_id: int, commit=True):
+        db_sess = Session.object_session(creator)
         now = get_datetime_now()
         qu = QueueUser(queue_id=queue_id, user_id=user_id, enter_date=now)
 
         db_sess.add(qu)
-        Log.added(qu, None, [
+        Log.added(qu, creator, [
             ("queue_id", queue_id),
             ("user_id", user_id),
             ("date", now.isoformat()),
@@ -84,13 +85,40 @@ class QueueUser(SqlAlchemyBase):
         return db_sess.query(QueueUser).filter(QueueUser.queue_id == queue_id).count()
 
     @staticmethod
-    def delete_all_in_queue(db_sess: Session, queue_id: int):
-        db_sess.query(QueueUser).filter(QueueUser.queue_id == queue_id).delete()
+    def delete_all_in_queue(actor: User, queue_id: int):
+        db_sess = Session.object_session(actor)
+        qus = QueueUser.all_in_queue(db_sess, queue_id)
+        for qu in qus:
+            qu.delete(actor, commit=False)
+        db_sess.commit()
 
-    def delete(self, commit=True):
+    def delete(self, actor: Session, commit=True):
         db_sess = Session.object_session(self)
         db_sess.delete(self)
-        Log.deleted(self, None, commit=commit, db_sess=db_sess)
+        Log.deleted(self, actor, [
+            ("queue_id", self.queue_id),
+            ("user_id", self.user_id),
+        ], commit=commit)
+
+    @staticmethod
+    def swap_enter_date(actor: User, qu1: QueueUser, qu2: QueueUser, commit=True):
+        qu1_enter_date = qu1.enter_date
+        qu2_enter_date = qu2.enter_date
+        qu1.enter_date = qu2_enter_date
+        qu2.enter_date = qu1_enter_date
+        Log.updated(qu1, actor, [
+            ("enter_date", qu1_enter_date.isoformat(), qu2_enter_date.isoformat()),
+        ], commit=False)
+        Log.updated(qu2, actor, [
+            ("enter_date", qu2_enter_date.isoformat(), qu1_enter_date.isoformat()),
+        ], commit=commit)
+
+    def set_now_as_enter_date(self, actor: User):
+        enter_date = self.enter_date
+        self.enter_date = get_datetime_now()
+        Log.updated(self, actor, [
+            ("enter_date", enter_date.isoformat(), self.enter_date.isoformat()),
+        ])
 
     def get_dict(self):
         return self.to_dict(only=("queue_id", "user_id", "date"))

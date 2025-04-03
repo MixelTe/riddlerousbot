@@ -1,4 +1,3 @@
-from bfs import get_datetime_now
 from bot.bot import Bot
 from bot.queue.utils import get_queue, get_queue_by_reply, silent_mode, update_queue_msg_if_changes, updateQueue
 from data.queue_user import QueueUser
@@ -38,7 +37,7 @@ def queue_enter(bot: Bot, args: list[str]):
         return "Уже в очереди"
 
     with update_queue_msg_if_changes(bot, queue):
-        QueueUser.new(bot.db_sess, queue.id, bot.user.id)
+        QueueUser.new(bot.user, queue.id, bot.user.id)
     return "Вы встали в очередь"
 
 
@@ -54,7 +53,7 @@ def queue_exit(bot: Bot, args: list[str]):
         return "Уже не в очереди"
 
     with update_queue_msg_if_changes(bot, queue):
-        qu.delete()
+        qu.delete(bot.user)
     return "Вы вышли из очереди"
 
 
@@ -77,8 +76,8 @@ def queue_pass(bot: Bot, args: list[str]):
     next_qu = qus[qui + 1]
 
     with update_queue_msg_if_changes(bot, queue):
-        qu.enter_date, next_qu.enter_date = next_qu.enter_date, qu.enter_date
-        bot.db_sess.commit()
+        QueueUser.swap_enter_date(bot.user, qu, next_qu)
+
     return "Вы пропустили одного"
 
 
@@ -92,10 +91,9 @@ def queue_end(bot: Bot, args: list[str]):
     qu = QueueUser.get(bot.db_sess, queue.id, bot.user.id)
     with update_queue_msg_if_changes(bot, queue):
         if qu is None:
-            QueueUser.new(bot.db_sess, queue.id, bot.user.id)
+            QueueUser.new(bot.user, queue.id, bot.user.id)
         else:
-            qu.enter_date = get_datetime_now()
-            bot.db_sess.commit()
+            qu.set_now_as_enter_date(bot.user)
 
     return "Вы встали в конец"
 
@@ -120,7 +118,7 @@ def queue_clear(bot: Bot, args: list[str]):
         return f"🟢 {user.get_tagname()} уже в очереди {queue.name}"
 
     with update_queue_msg_if_changes(bot, queue):
-        QueueUser.new(bot.db_sess, queue.id, user.id)
+        QueueUser.new(bot.user, queue.id, user.id)
 
     if not s:
         return f"🟢 {user.get_tagname()} теперь в очереди {queue.name}"
