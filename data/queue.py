@@ -68,7 +68,8 @@ class Queue(SqlAlchemyBase, IdMixin):
             self.msg_next = None
         else:
             self.msg_next = Msg.new_from_data(actor, message)
-        old_msg.delete(actor, commit=False)
+        if old_msg:
+            old_msg.delete(actor, commit=False)
         Log.updated(self, actor, [("msg_next_id", None if old_msg is None else old_msg.id, None if self.msg_next is None else self.msg_next.id)])
 
     def get_dict(self):

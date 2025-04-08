@@ -1,5 +1,6 @@
 from typing import Callable, Tuple, Union
 
+from bfs import ParametrizedLogger, add_file_logger
 from tgapi import get_bot_name
 from .types import *
 from .methods import *
@@ -16,15 +17,27 @@ class Bot:
     chosen_inline_result: ChosenInlineResult = None
 
     _commands: dict[str, Tuple[cmd_fn, Tuple[cmd_dsc, cmd_dsc]]] = {}
-    sender: Union[User, None] = None
+    _sender: Union[User, None] = None
     chat: Union[Chat, None] = None
     TextWrongCommand = "Wrong command"
+    logger: "BotLogger" = None
 
     @property
     def is_callback(self):
         return self.callback_query is not None
 
+    @property
+    def sender(self):
+        return self._sender
+
+    @sender.setter
+    def sender(self, value):
+        self._sender = value
+        self.logger.user = value
+
     def init(self):
+        fmt = "%(asctime)s;%(levelname)s;%(module)s;%(uid)-10s;%(uname)-15s;%(cmd)-15s;%(message)s"
+        self.logger = BotLogger(add_file_logger("logs/bot.csv", "bot", fmt, ["uid", "uname", "cmd"]))
         get_cmd = lambda key, i: self._commands[key][1][i] if isinstance(self._commands[key][1][i], str) else self._commands[key][1][i][0]
         setMyCommands([BotCommand(cmd, get_cmd(cmd, 0)) for cmd in self._commands.keys() if self._commands[cmd][1][0]])
         setMyCommands([BotCommand(cmd, get_cmd(cmd, 1)) for cmd in self._commands.keys()
@@ -81,6 +94,7 @@ class Bot:
         self.chosen_inline_result = update.chosen_inline_result
         self.sender = None
         self.chat = None
+        self.logger._reset()
         if update.message and update.message.text != "":
             self.sender = self.message.sender
             self.chat = self.message.chat
@@ -126,6 +140,7 @@ class Bot:
         if not cmd:
             return False
         fn, description = cmd
+        self.logger.cmd = command
         r = fn(self, args)
         if r:
             return r
@@ -168,3 +183,19 @@ class Bot:
 
     def on_chosen_inline_result(self):
         pass
+
+
+class BotLogger(ParametrizedLogger):
+    user: User = None
+    cmd = ""
+
+    def _reset(self):
+        self.user = None
+        self.cmd = ""
+
+    def _get_args(self):
+        return {
+            "uid": self.user.id if self.user else -1,
+            "uname": self.user.username if self.user else "",
+            "cmd": self.cmd
+        }

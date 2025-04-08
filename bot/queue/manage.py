@@ -26,6 +26,7 @@ def queue_rename(bot: Bot, args: list[str]):
     name = " ".join(args)
     queue.update_name(bot.user, name)
 
+    bot.logger.info(f"qid={queue.id} (\"{old_name}\" -> \"{name}\")")
     updateQueue(bot, queue, updateQueueLoudness.quiet)
     if not s:
         return f"✏ Имя очереди {old_name} обновлено на очередь {name}"
@@ -43,6 +44,7 @@ def queue_clear(bot: Bot, args: list[str]):
 
     QueueUser.delete_all_in_queue(bot.user, queue.id)
 
+    bot.logger.info(f"qid={queue.id}")
     updateQueue(bot, queue)
     if not s:
         return f"✏ Очередь {queue.name} очищена"
@@ -58,6 +60,7 @@ def queue_force_update(bot: Bot, args: list[str]):
     if err:
         return err
 
+    bot.logger.info(f"qid={queue.id}")
     updateQueue(bot, queue, updateQueueLoudness.scream)
 
 
@@ -94,6 +97,7 @@ def queue_kick(bot: Bot, args: list[str]):
         ]]))
         return
 
+    bot.logger.info(f"qid={queue.id} uid={user.id} ({user.get_username()})")
     with update_queue_msg_if_changes(bot, queue):
         uq.delete(bot.user)
 
@@ -134,6 +138,7 @@ def queue_kick_cmd(bot: Bot, args: list[str]):
         return "user not found in queue"
 
     user = uq.user
+    bot.logger.info(f"qid={queue.id} uid={user.id} ({user.get_username()})")
     with update_queue_msg_if_changes(bot, queue):
         uq.delete(bot.user)
 
@@ -189,6 +194,7 @@ def queue_add_to(bot: Bot, args: list[str]):
                 break
         bot.db_sess.commit()
 
+    bot.logger.info(f"qid={queue.id} uid={user.id} ({user.get_username()}) qui={qui}")
     if not s:
         return f"🟢 {user.get_tagname()} теперь в очереди {queue.name} на позиции {qui + 1}"
 
@@ -223,6 +229,7 @@ def queue_set(bot: Bot, args: list[str]):
     if len(users) == 0:
         return
 
+    bot.logger.info(f"qid={queue.id} [{'; '.join(f'{u.id} ({u.get_username()})' for u in  users)}]")
     QueueUser.delete_all_in_queue(bot.user, queue.id)
     now = get_datetime_now() - timedelta(seconds=len(users))
     for i, user in enumerate(users):

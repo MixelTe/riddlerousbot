@@ -107,9 +107,13 @@ class QueueUser(SqlAlchemyBase):
         qu1.enter_date = qu2_enter_date
         qu2.enter_date = qu1_enter_date
         Log.updated(qu1, actor, [
+            ("queue_id", qu1.queue_id, qu1.queue_id),
+            ("user_id", qu1.user_id, qu1.user_id),
             ("enter_date", qu1_enter_date.isoformat(), qu2_enter_date.isoformat()),
         ], commit=False)
         Log.updated(qu2, actor, [
+            ("queue_id", qu2.queue_id, qu2.queue_id),
+            ("user_id", qu2.user_id, qu2.user_id),
             ("enter_date", qu2_enter_date.isoformat(), qu1_enter_date.isoformat()),
         ], commit=commit)
 
@@ -117,6 +121,8 @@ class QueueUser(SqlAlchemyBase):
         enter_date = self.enter_date
         self.enter_date = get_datetime_now()
         Log.updated(self, actor, [
+            ("queue_id", self.queue_id, self.queue_id),
+            ("user_id", self.user_id, self.user_id),
             ("enter_date", enter_date.isoformat(), self.enter_date.isoformat()),
         ])
 

@@ -16,9 +16,12 @@ def queue_new(bot: Bot, args: list[str]):
         return "Укажите имя очереди\nUsage: /queue_new <name> [\\s]"
 
     name = " ".join(args)
+    bot.logger.info(f"creating {name}")
     ok, r = bot.sendMessage(f"📝 Очередь {name}:\n⏳ Создание...")
     if not ok:
+        bot.logger.error(r)
         return "Error!"
+    bot.logger.info(f"created {name}")
 
     queue = Queue.new_by_message(bot.user, r, name)
     tgapi.pinChatMessage(r.chat.id, r.message_id)
@@ -36,6 +39,7 @@ def queue_enter(bot: Bot, args: list[str]):
     if qu is not None:
         return "Уже в очереди"
 
+    bot.logger.info(f"qid={queue.id} uid={bot.user.id} ({bot.user.get_username()})")
     with update_queue_msg_if_changes(bot, queue):
         QueueUser.new(bot.user, queue.id, bot.user.id)
     return "Вы встали в очередь"
@@ -52,6 +56,7 @@ def queue_exit(bot: Bot, args: list[str]):
     if qu is None:
         return "Уже не в очереди"
 
+    bot.logger.info(f"qid={queue.id} uid={bot.user.id} ({bot.user.get_username()})")
     with update_queue_msg_if_changes(bot, queue):
         qu.delete(bot.user)
     return "Вы вышли из очереди"
@@ -75,6 +80,7 @@ def queue_pass(bot: Bot, args: list[str]):
 
     next_qu = qus[qui + 1]
 
+    bot.logger.info(f"qid={queue.id} uid={bot.user.id} ({bot.user.get_username()})")
     with update_queue_msg_if_changes(bot, queue):
         QueueUser.swap_enter_date(bot.user, qu, next_qu)
 
@@ -88,6 +94,7 @@ def queue_end(bot: Bot, args: list[str]):
     if err:
         return err
 
+    bot.logger.info(f"qid={queue.id} uid={bot.user.id} ({bot.user.get_username()})")
     qu = QueueUser.get(bot.db_sess, queue.id, bot.user.id)
     with update_queue_msg_if_changes(bot, queue):
         if qu is None:
@@ -100,7 +107,7 @@ def queue_end(bot: Bot, args: list[str]):
 
 @Bot.add_command("queue_add", (("Добавить в очередь", "<username> [\\s]"), None))
 @Bot.cmd_connect_db
-def queue_clear(bot: Bot, args: list[str]):
+def queue_add(bot: Bot, args: list[str]):
     args, s = silent_mode(bot, args)
 
     queue, err = get_queue_by_reply(bot)
@@ -117,6 +124,7 @@ def queue_clear(bot: Bot, args: list[str]):
     if qu is not None:
         return f"🟢 {user.get_tagname()} уже в очереди {queue.name}"
 
+    bot.logger.info(f"qid={queue.id} uid={user.id} ({user.get_username()})")
     with update_queue_msg_if_changes(bot, queue):
         QueueUser.new(bot.user, queue.id, user.id)
 
