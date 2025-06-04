@@ -1,4 +1,4 @@
-from typing import Union
+from typing import List, Union
 from .utils import call
 from .types import *
 
@@ -12,7 +12,8 @@ def getUpdates(offset: int = 0, timeout: int = 0):
 
 # https://core.telegram.org/bots/api#sendmessage
 def sendMessage(chat_id: str, text: str, message_thread_id: int = None, use_markdown=False,
-                reply_markup: InlineKeyboardMarkup = None, reply_parameters: ReplyParameters = None):
+                reply_markup: InlineKeyboardMarkup = None, reply_parameters: ReplyParameters = None,
+                entities: List[MessageEntity] = None):
     ok, r = call("sendMessage", {
         "chat_id": chat_id,
         "message_thread_id": message_thread_id,
@@ -20,6 +21,7 @@ def sendMessage(chat_id: str, text: str, message_thread_id: int = None, use_mark
         "parse_mode": "MarkdownV2" if use_markdown else None,
         "reply_markup": reply_markup,
         "reply_parameters": reply_parameters,
+        "entities": entities,
     })
     if not ok:
         return False, r

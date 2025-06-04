@@ -1,3 +1,4 @@
+import re
 from typing import Callable, Tuple, Union
 
 from bfs import ParametrizedLogger, add_file_logger
@@ -38,10 +39,12 @@ class Bot:
     def init(self):
         fmt = "%(asctime)s;%(levelname)s;%(module)s;%(uid)-10s;%(uname)-15s;%(cmd)-15s;%(message)s"
         self.logger = BotLogger(add_file_logger("logs/bot.csv", "bot", fmt, ["uid", "uname", "cmd"]))
-        get_cmd = lambda key, i: self._commands[key][1][i] if isinstance(self._commands[key][1][i], str) else self._commands[key][1][i][0]
-        setMyCommands([BotCommand(cmd, get_cmd(cmd, 0)) for cmd in self._commands.keys() if self._commands[cmd][1][0]])
-        setMyCommands([BotCommand(cmd, get_cmd(cmd, 1)) for cmd in self._commands.keys()
-                      if self._commands[cmd][1][1]], BotCommandScope.all_chat_administrators())
+        get_cmd = lambda v: v if isinstance(v, str) else v[0]
+        get_dsc = lambda key, i: self._commands[key][1][i]
+        replace_vars = lambda cmd: cmd.replace("<", "").replace(">", "")
+        setMyCommands([BotCommand(replace_vars(cmd), get_cmd(get_dsc(cmd, 0))) for cmd in self._commands.keys() if get_dsc(cmd, 0)])
+        setMyCommands([BotCommand(replace_vars(cmd), get_cmd(get_dsc(cmd, 1) or get_dsc(cmd, 0))) for cmd in self._commands.keys()
+                       if get_dsc(cmd, 0) or get_dsc(cmd, 1)], BotCommandScope.all_chat_administrators())
 
     def get_my_commands(self, admin_only=False):
         pub_keys = [key for key in self._commands.keys() if self._commands[key][1][0]]
@@ -67,13 +70,46 @@ class Bot:
                 if pri is None:
                     pri = pub
 
+            if "<" in command:
+                parts = []
+                param = None
+                for ch in command:
+                    if ch == "<":
+                        param = ""
+                    elif ch == ">":
+                        parts.append((param, True))
+                        param = None
+                    elif param is not None:
+                        param += ch
+                    else:
+                        if not parts or not parts[-1][0]:
+                            parts.append(("", False))
+                        parts[-1] = (parts[-1][0] + ch, False)
+                res = ""
+                varnames = []
+                for part, isvar in parts:
+                    if isvar:
+                        res += "(.*)"
+                        varnames.append(part)
+                    else:
+                        res += part
+                reg = re.compile(res, re.IGNORECASE)
+                fn.regex = reg
+
+                def comparer(cmd: str):
+                    m = fn.regex.match(cmd)
+                    if not m or len(m.groups()) != len(varnames):
+                        return None
+                    return dict(zip(varnames, m.groups()))
+                fn.comparer = comparer
+
             cls._commands[command] = (fn, (pub, pri))
             return fn
         return wrapper
 
     @staticmethod
     def cmd_for_admin(fn):
-        def wrapped(bot: Bot, args: list[str]):
+        def wrapped(bot: Bot, args: list[str], **kwargs):
             if bot.chat is None or bot.sender is None:
                 return "403(500!)"
             ok, r = getChatMember(bot.chat.id, bot.sender.id)
@@ -83,7 +119,7 @@ class Bot:
             #     return "Эта команда только для админов"
             if r.status != "creator" and r.status != "administrator" and r.user.username != "kilobit0":
                 return "Эта команда только для админов и Стёпы"
-            return fn(bot, args)
+            return fn(bot, args, **kwargs)
         return wrapped
 
     def process_update(self, update: Update):
@@ -136,15 +172,26 @@ class Bot:
                 return None
             command = command[:mention]
         args = args[1:]
-        cmd = self._commands.get(command, None)
+        cmd, kwargs = self._find_command(command)
         if not cmd:
             return False
         fn, description = cmd
         self.logger.cmd = command
-        r = fn(self, args)
+        r = fn(self, args, **kwargs)
         if r:
             return r
         return True
+
+    def _find_command(self, cmd: str):
+        c = self._commands.get(cmd, None)
+        if c:
+            return c, {}
+        for c in self._commands.values():
+            if hasattr(c[0], "comparer"):
+                kwargs = c[0].comparer(cmd)
+                if kwargs:
+                    return c, kwargs
+        return None, {}
 
     def on_callback_query(self):
         r = self.on_command(self.callback_query.data)
@@ -157,7 +204,8 @@ class Bot:
         self.answerInlineQuery([])
 
     def sendMessage(self, text: str, message_thread_id: int = None, use_markdown=False,
-                    reply_markup: InlineKeyboardMarkup = None, reply_parameters: ReplyParameters = None):
+                    reply_markup: InlineKeyboardMarkup = None, reply_parameters: ReplyParameters = None,
+                    entities: List[MessageEntity] = None):
         chat_id = None
         if self.message:
             chat_id = self.message.chat.id
@@ -169,7 +217,7 @@ class Bot:
                 message_thread_id = self.callback_query.message.message_thread_id
         else:
             raise Exception("tgapi: cant send message without chat id")
-        return sendMessage(chat_id, text, message_thread_id, use_markdown, reply_markup, reply_parameters)
+        return sendMessage(chat_id, text, message_thread_id, use_markdown, reply_markup, reply_parameters, entities)
 
     def answerCallbackQuery(self, text: str = None, show_alert: bool = False, url: str = None, cache_time: int = 0):
         if self.callback_query is None:

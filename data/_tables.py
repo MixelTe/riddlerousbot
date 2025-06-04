@@ -5,3 +5,4 @@ class Tables(TablesBase):
     Msg = "Msg"
     Queue = "Queue"
     QueueUser = "QueueUser"
+    Screamer = "Screamer"

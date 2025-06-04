@@ -22,6 +22,38 @@ class Chat(ParsedJson):
     is_forum: bool = False
 
 
+class MessageEntity(JsonObj):
+    Type = Literal["mention", "hashtag", "cashtag", "bot_command", "url", "email", "phone_number", "bold", "italic", "underline",
+                   "strikethrough", "spoiler", "blockquote", "expandable_blockquote", "code", "pre", "text_link", "text_mention", "custom_emoji"]
+    # https://core.telegram.org/bots/api#messageentity
+    type: Type
+    offset: int
+    length: int
+    url: str = None
+    user: User = None
+    language: str = None
+    custom_emoji_id: str = None
+
+    def __init__(self, type: Type, offset: int, length: int):
+        self.type = type
+        self.offset = offset
+        self.length = length
+
+    @staticmethod
+    def text_mention(offset: int, length: int, user: User):
+        me = MessageEntity("text_mention", offset, length)
+        me.user = user
+        return user
+
+    @staticmethod
+    def blockquote(offset: int, length: int):
+        return MessageEntity("blockquote", offset, length)
+
+    @staticmethod
+    def len(text: str):
+        return len(text.encode("utf-16-le")) // 2
+
+
 class Message(ParsedJson):
     __id_field__ = "message_id"
     # https://core.telegram.org/bots/api#message
