@@ -161,7 +161,7 @@ class Bot:
             self.on_message_text()
 
     def on_command(self, input: str):
-        args = [str.strip(v) for v in input.split()]
+        args = [str.strip(v) for v in input.replace("\n", "\n ").split(" ")]
         if len(args) == 0:
             return False
         command = args[0]
