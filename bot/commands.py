@@ -4,16 +4,21 @@ from data.screamer import Screamer
 import tgapi
 
 
-@Bot.add_command("goida_<txt>", (("Кричалка", "[new_text] [\\s]"), None))
+@Bot.add_command("goida_<txt>", (("Кричалка", "[new_text] [\\s]"), None), raw_args=True)
 @Bot.cmd_connect_db
 def goida(bot: Bot, args: list[str], txt: str):
-    args, sl = silent_mode(bot, args)
+    sl = False
+    if len(args) > 0 and args[0][-2:] == "\\s":
+        _, sl = silent_mode(bot, [args[0], "\\s"])
+        args[0] = args[0][:-2]
     t = "🤟 " + bot.user.get_name() + " 🤟\n"
     if not txt:
         return t + "Тыц-тыц!"
     s = Screamer.get_by_cmd(bot.db_sess, txt)
     if len(args) > 0:
-        text = " ".join(args)
+        text = args[0]
+        if txt == "txt":
+            return None
         if s:
             s.update_text(bot.user, text)
         else:

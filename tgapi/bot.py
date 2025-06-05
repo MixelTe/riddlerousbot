@@ -17,7 +17,7 @@ class Bot:
     inline_query: InlineQuery = None
     chosen_inline_result: ChosenInlineResult = None
 
-    _commands: dict[str, Tuple[cmd_fn, Tuple[cmd_dsc, cmd_dsc]]] = {}
+    _commands: dict[str, Tuple[cmd_fn, Tuple[cmd_dsc, cmd_dsc]], bool] = {}
     _sender: Union[User, None] = None
     chat: Union[Chat, None] = None
     TextWrongCommand = "Wrong command"
@@ -61,7 +61,7 @@ class Bot:
         return [(cmd, self._commands[cmd][1][i]) for cmd in keys]
 
     @classmethod
-    def add_command(cls, command: str, description: Union[cmd_dsc, Tuple[cmd_dsc, cmd_dsc]]):
+    def add_command(cls, command: str, description: Union[cmd_dsc, Tuple[cmd_dsc, cmd_dsc]], raw_args=False):
         def wrapper(fn: cmd_fn):
             if isinstance(description, tuple):
                 pub, pri = description
@@ -103,7 +103,7 @@ class Bot:
                     return dict(zip(varnames, m.groups()))
                 fn.comparer = comparer
 
-            cls._commands[command] = (fn, (pub, pri))
+            cls._commands[command] = (fn, (pub, pri), raw_args)
             return fn
         return wrapper
 
@@ -155,13 +155,13 @@ class Bot:
             if r:
                 if isinstance(r, str):
                     self.sendMessage(r)
-            elif r is False:
-                self.sendMessage(self.TextWrongCommand)
+            # elif r is False:
+            #     self.sendMessage(self.TextWrongCommand)
         else:
             self.on_message_text()
 
     def on_command(self, input: str):
-        args = [(str.strip(v) + ("\n" if v[-1] == "\n" else "")) for v in input.replace("\n", "\n ").split(" ")]
+        args = [str.strip(v) for v in input.split()]
         if len(args) == 0:
             return False
         command = args[0]
@@ -175,7 +175,13 @@ class Bot:
         cmd, kwargs = self._find_command(command)
         if not cmd:
             return False
-        fn, description = cmd
+        fn, description, raw_args = cmd
+        if raw_args:
+            i = input.find(" ")
+            if i > 0:
+                args = [input[i:].strip()]
+            else:
+                args = []
         self.logger.cmd = command
         r = fn(self, args, **kwargs)
         if r:
