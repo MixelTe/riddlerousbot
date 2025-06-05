@@ -11,8 +11,8 @@ from data.user import User
 class Screamer(SqlAlchemyBase, IdMixin):
     __tablename__ = Tables.Screamer
 
-    cmd = Column(String(256))
-    text = Column(String(256))
+    cmd = Column(String(1024))
+    text = Column(String(1024))
 
     @staticmethod
     def new(creator: User, cmd: str, text: str):
