@@ -39,7 +39,6 @@ def upgrade() -> None:
     )
     # ### end Alembic commands ###
 
-    print(screamers)
     for (id, cmd, txt) in screamers:
         session.add(Screamer(id=id, cmd=cmd, text=txt))
     session.commit()

@@ -50,6 +50,10 @@ class MessageEntity(JsonObj):
         return MessageEntity("blockquote", offset, length)
 
     @staticmethod
+    def spoiler(offset: int, length: int):
+        return MessageEntity("spoiler", offset, length)
+
+    @staticmethod
     def len(text: str):
         return len(text.encode("utf-16-le")) // 2
 
