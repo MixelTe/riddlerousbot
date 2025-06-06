@@ -56,6 +56,7 @@ def quote(bot: Bot, args: list[str]):
 def all(bot: Bot, args: list[str]):
     ok, msg = bot.sendMessage("Загрузка списка группы")
     users = User.all(bot.db_sess)
+    users.sort(key=lambda u: u.get_tagname() + u.get_username())
     text = ""
     entities = []
     for user in users:
@@ -63,7 +64,7 @@ def all(bot: Bot, args: list[str]):
             utext = user.get_tagname()
             if user.username == "":
                 entities.append(ME.text_mention(ME.len(text), ME.len(utext), user.id_tg))
-            text += utext + "\n"
+            text += utext + " "
     if msg:
         tgapi.deleteMessage(msg.chat.id, msg.message_id)
 
