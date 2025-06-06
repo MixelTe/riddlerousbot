@@ -1,6 +1,7 @@
 from bot.bot import Bot
 from bot.queue.base import silent_mode
 from data.screamer import Screamer
+from data.user import User
 import tgapi
 
 ME = tgapi.MessageEntity
@@ -50,4 +51,31 @@ def quote(bot: Bot, args: list[str]):
     ])
 
 
-# def all
+@Bot.add_command("all", "Вызвать всех!")
+@Bot.cmd_connect_db
+def all(bot: Bot, args: list[str]):
+    ok, msg = bot.sendMessage("Загрузка списка группы")
+    users = User.all(bot.db_sess)
+    text = ""
+    entities = []
+    for user in users:
+        if check_is_member_of_chat(bot, user):
+            utext = user.get_tagname()
+            if user.username == "":
+                entities.append(ME.text_mention(ME.len(text), ME.len(utext), user.id_tg))
+            text += utext + "\n"
+    if msg:
+        tgapi.deleteMessage(msg.chat.id, msg.message_id)
+
+    bot.sendMessage(text, entities=entities)
+
+
+def check_is_member_of_chat(bot: Bot, user: User):
+    if bot.chat is None:
+        return False
+    bot.sender
+    ok, r = tgapi.getChatMember(bot.chat.id, user.id_tg)
+    if not ok:
+        return False
+
+    return r.status != "left" and r.status != "kicked"

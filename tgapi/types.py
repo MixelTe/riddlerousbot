@@ -23,6 +23,10 @@ class Chat(ParsedJson):
 
 
 class MessageEntity(JsonObj):
+    class _User(JsonObj):
+        def __init__(self, id: int):
+            self.id = id
+
     Type = Literal["mention", "hashtag", "cashtag", "bot_command", "url", "email", "phone_number", "bold", "italic", "underline",
                    "strikethrough", "spoiler", "blockquote", "expandable_blockquote", "code", "pre", "text_link", "text_mention", "custom_emoji"]
     # https://core.telegram.org/bots/api#messageentity
@@ -30,7 +34,7 @@ class MessageEntity(JsonObj):
     offset: int
     length: int
     url: str = None
-    user: User = None
+    user: _User = None
     language: str = None
     custom_emoji_id: str = None
 
@@ -40,10 +44,10 @@ class MessageEntity(JsonObj):
         self.length = length
 
     @staticmethod
-    def text_mention(offset: int, length: int, user: User):
+    def text_mention(offset: int, length: int, user_id: int):
         me = MessageEntity("text_mention", offset, length)
-        me.user = user
-        return user
+        me.user = MessageEntity._User(user_id)
+        return me
 
     @staticmethod
     def blockquote(offset: int, length: int):
