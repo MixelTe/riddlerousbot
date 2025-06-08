@@ -5,7 +5,8 @@ from sqlalchemy import Column, ForeignKey, Integer, orm
 from sqlalchemy.orm import Session
 
 from bfs import SqlAlchemyBase, IdMixin
-from bot.bot import Bot
+if TYPE_CHECKING:
+    from bot.bot import Bot
 from data._tables import Tables
 from data.user import User
 import tgapi
