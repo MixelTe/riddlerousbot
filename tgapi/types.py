@@ -58,6 +58,10 @@ class MessageEntity(JsonObj):
         return MessageEntity("spoiler", offset, length)
 
     @staticmethod
+    def bold(offset: int, length: int):
+        return MessageEntity("bold", offset, length)
+
+    @staticmethod
     def len(text: str):
         return len(text.encode("utf-16-le")) // 2
 

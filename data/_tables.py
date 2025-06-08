@@ -6,3 +6,4 @@ class Tables(TablesBase):
     Queue = "Queue"
     QueueUser = "QueueUser"
     Screamer = "Screamer"
+    TicTacToe = "TicTacToe"

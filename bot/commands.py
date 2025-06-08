@@ -26,6 +26,7 @@ def goida(bot: Bot, args: list[str], txt: str):
             s.update_text(bot.user, text)
         else:
             s = Screamer.new(bot.user, txt, text)
+        bot.logger.info(f"uid={bot.user.id} ({bot.user.get_username()}) upd cmd {txt}")
         if sl:
             return None
     text = s.text if s else txt.replace("_", " ")

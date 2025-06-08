@@ -29,13 +29,15 @@ def sendMessage(chat_id: str, text: str, message_thread_id: int = None, use_mark
 
 
 # https://core.telegram.org/bots/api#editmessagetext
-def editMessageText(chat_id: Union[int, str], message_id: int, text: str, use_markdown=False, reply_markup: InlineKeyboardMarkup = None):
+def editMessageText(chat_id: Union[int, str], message_id: int, text: str, use_markdown=False,
+                    reply_markup: InlineKeyboardMarkup = None, entities: List[MessageEntity] = None):
     ok, r = call("editMessageText", {
         "chat_id": chat_id,
         "message_id": message_id,
         "text": text,
         "parse_mode": "MarkdownV2" if use_markdown else None,
         "reply_markup": reply_markup,
+        "entities": entities,
     })
     if not ok:
         return False, r

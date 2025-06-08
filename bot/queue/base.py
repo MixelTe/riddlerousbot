@@ -21,9 +21,9 @@ def queue_new(bot: Bot, args: list[str]):
     if not ok:
         bot.logger.error(r)
         return "Error!"
-    bot.logger.info(f"created {name}")
 
     queue = Queue.new_by_message(bot.user, r, name)
+    bot.logger.info(f"created id={queue.id} ({name})")
     tgapi.pinChatMessage(r.chat.id, r.message_id)
     updateQueue(bot, queue)
 
@@ -118,7 +118,7 @@ def queue_add(bot: Bot, args: list[str]):
     user = User.get_by_username(bot.db_sess, username)
 
     if not user:
-        return "👻 Этот пользователь не знаком боту (если в имени ошибки нет, пускай он хотя бы раз повзаимодействует с ботом)"
+        return f"👻 Этот пользователь ({username}) не знаком боту (если в имени ошибки нет, пускай он хотя бы раз повзаимодействует с ботом)"
 
     qu = QueueUser.get(bot.db_sess, queue.id, user.id)
     if qu is not None:

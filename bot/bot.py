@@ -63,3 +63,4 @@ def help(bot: Bot, args: list[str]):  # noqa: F811
 import bot.queue.base
 import bot.queue.manage
 import bot.commands
+import bot.tic_tac_toe
