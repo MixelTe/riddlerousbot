@@ -62,6 +62,14 @@ class MessageEntity(JsonObj):
         return MessageEntity("bold", offset, length)
 
     @staticmethod
+    def italic(offset: int, length: int):
+        return MessageEntity("italic", offset, length)
+
+    @staticmethod
+    def underline(offset: int, length: int):
+        return MessageEntity("underline", offset, length)
+
+    @staticmethod
     def len(text: str):
         return len(text.encode("utf-16-le")) // 2
 

@@ -1,19 +1,21 @@
 import math
 from bot.bot import Bot
 from data.tic_tac_toe import TicTacToe
+from data.transaction import Transaction
 from data.user import User
 import tgapi
 from utils import parse_int
 
 IKB = tgapi.InlineKeyboardButton
 ME = tgapi.MessageEntity
+GAME_WIN_VALUE = 5
 
 
 @Bot.add_command("tic_tac_toe", (("Крестики нолики", "[oppenent]"), None))
 @Bot.cmd_connect_db
 def tic_tac_toe(bot: Bot, args: list[str]):
     entities = []
-    text = "Крестики-нолики\n"
+    text = "👾 Крестики-нолики\n"
     entities.append(ME.bold(0, ME.len(text)))
     uname = bot.user.get_username()
     entities.append(ME.text_mention(ME.len(text), ME.len(uname), bot.user.id_tg))
@@ -36,7 +38,7 @@ def tic_tac_toe(bot: Bot, args: list[str]):
     bot.logger.info(f"created {game.id} by uid={bot.user.id} ({bot.user.get_username()})")
 
     tgapi.editMessageText(msg.chat.id, msg.message_id, text, reply_markup=tgapi.InlineKeyboardMarkup([[
-        IKB.callback("Принять вызов!", f"tic_tac_toe_join {game.id}"),
+        IKB.callback("⚔ Принять вызов!", f"tic_tac_toe_join {game.id}"),
     ]]), entities=entities)
 
 
@@ -94,6 +96,11 @@ def tic_tac_toe_turn(bot: Bot, args: list[str]):
 
     status, player_i = game.get_status()
     if status == "winner":
+        winner = game.player1 if player_i == 1 else game.player2
+        looser = game.player2 if player_i == 1 else game.player1
+        if looser.coins >= GAME_WIN_VALUE:
+            trn = Transaction.new(bot.user, user_from=looser, user_to=winner, value=GAME_WIN_VALUE)
+            trn.notify(bot, game.msg.message_id)
         bot.logger.info(f"win {game.id} by uid={player.id} ({player.get_username()})")
     elif status == "draw":
         bot.logger.info(f"draw {game.id} by uid={player.id} ({player.get_username()})")
@@ -119,10 +126,10 @@ def get_game(bot: Bot, args: list[str]):
 def update_msg(game: TicTacToe):
     player1_piece = get_player_piece(game.player1.id_tg, True)
     player2_piece = get_player_piece(game.player2.id_tg, False)
-    p1name = player1_piece + game.player1.get_username()
-    p2name = player2_piece + game.player2.get_username()
+    p1name = player1_piece + " " + game.player1.get_username()
+    p2name = player2_piece + " " + game.player2.get_username()
     entities = []
-    text = "Крестики-нолики\n"
+    text = "👾 Крестики-нолики\n"
     entities.append(ME.bold(0, ME.len(text)))
     entities.append(ME.text_mention(ME.len(text), ME.len(p1name), game.player1.id_tg))
     text += p1name
@@ -134,15 +141,15 @@ def update_msg(game: TicTacToe):
     status, player_i = game.get_status()
     player = game.player1 if player_i == 1 else game.player2
     player_piece = player1_piece if player_i == 1 else player2_piece
-    pname = player_piece + player.get_username()
+    pname = player_piece + " " + player.get_username()
     if status == "turn":
-        text += "Ходит "
+        text += "⚔ Ходит "
         entities.append(ME.text_mention(ME.len(text), ME.len(pname), player.id_tg))
         text += pname
     elif status == "draw":
-        text += "Ничья!"
+        text += "🥳 Ничья!"
     else:
-        text += "Победа за "
+        text += "🥳 Победа за "
         entities.append(ME.text_mention(ME.len(text), ME.len(pname), player.id_tg))
         text += pname + "!"
 

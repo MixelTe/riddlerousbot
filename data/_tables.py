@@ -7,3 +7,4 @@ class Tables(TablesBase):
     QueueUser = "QueueUser"
     Screamer = "Screamer"
     TicTacToe = "TicTacToe"
+    Transaction = "Transaction"

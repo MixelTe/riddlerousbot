@@ -1,4 +1,4 @@
-from sqlalchemy import DefaultClause, Column, BigInteger, String, Boolean
+from sqlalchemy import DefaultClause, Column, BigInteger, Integer, String, Boolean
 from sqlalchemy.orm import Session
 
 from bfs import UserBase, randstr
@@ -14,6 +14,7 @@ class User(UserBase):
     last_name = Column(String(128), nullable=False)
     username = Column(String(128), nullable=False)
     language_code = Column(String(16), nullable=False)
+    coins = Column(Integer, DefaultClause("100"), nullable=False)
 
     @classmethod
     def new(cls, db_sess: Session, id_tg: int, is_bot: bool, first_name: str, last_name: str, username: str, language_code: str):

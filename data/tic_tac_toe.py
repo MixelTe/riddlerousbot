@@ -32,16 +32,16 @@ class TicTacToe(SqlAlchemyBase, IdMixin):
     def new(creator: User, msg_id: int, player1_id: int, player2_id: int = None):
         db_sess = Session.object_session(creator)
         field = "0" * 9
-        msg = TicTacToe(msg_id=msg_id, player1_id=player1_id, player2_id=player2_id, field=field)
+        game = TicTacToe(msg_id=msg_id, player1_id=player1_id, player2_id=player2_id, field=field)
 
-        db_sess.add(msg)
-        Log.added(msg, creator, [
+        db_sess.add(game)
+        Log.added(game, creator, [
             ("msg_id", msg_id),
             ("player1_id", player1_id),
             ("player2_id", player2_id),
         ])
 
-        return msg
+        return game
 
     @staticmethod
     def new_by_message(creator: User, message: tgapi.Message, player1_id: int, player2_id: int = None):
@@ -71,7 +71,7 @@ class TicTacToe(SqlAlchemyBase, IdMixin):
                 winner = 2
 
         for y in range(3):
-            set_winner(self.field[y * 3:y * 4])
+            set_winner(self.field[y * 3:y * 3 + 3])
         for y in range(3):
             set_winner(self.field[y] + self.field[y + 3] + self.field[y + 6])
         set_winner(self.field[0] + self.field[4] + self.field[8])
