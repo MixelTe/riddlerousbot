@@ -79,6 +79,8 @@ def say(bot: Bot, args: list[str]):
         tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
     if len(args) == 0:
         return
+    if bot.user.username != "MixelTe":
+        return
 
     return args[0]
 
