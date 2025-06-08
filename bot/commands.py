@@ -75,11 +75,11 @@ def all(bot: Bot, args: list[str]):
 @Bot.add_command("say", None, raw_args=True)
 @Bot.cmd_connect_db
 def say(bot: Bot, args: list[str]):
+    if bot.user.username != "MixelTe":
+        return
     if bot.message:
         tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
     if len(args) == 0:
-        return
-    if bot.user.username != "MixelTe":
         return
 
     return args[0]
