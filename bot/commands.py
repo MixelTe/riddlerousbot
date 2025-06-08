@@ -72,6 +72,17 @@ def all(bot: Bot, args: list[str]):
     bot.sendMessage(text, entities=entities)
 
 
+@Bot.add_command("say", None, raw_args=True)
+@Bot.cmd_connect_db
+def say(bot: Bot, args: list[str]):
+    if bot.message:
+        tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
+    if len(args) == 0:
+        return
+
+    return args[0]
+
+
 def check_is_member_of_chat(bot: Bot, user: User):
     if bot.chat is None:
         return False
