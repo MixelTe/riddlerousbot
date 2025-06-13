@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Column, ForeignKey, Integer, orm
 from sqlalchemy.orm import Session
 
-from bfs import SqlAlchemyBase, IdMixin
+from bafser import SqlAlchemyBase, IdMixin
 if TYPE_CHECKING:
     from bot.bot import Bot
 from data._tables import Tables

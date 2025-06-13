@@ -2,7 +2,7 @@ import logging
 
 from flask import Blueprint, g, request
 
-from bfs import response_msg
+from bafser import response_msg
 from bot.main import process_update
 import tgapi
 

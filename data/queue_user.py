@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, orm
 from sqlalchemy.orm import Session
 
-from bfs import SqlAlchemyBase, Log, get_datetime_now
+from bafser import SqlAlchemyBase, Log, get_datetime_now
 from data._tables import Tables
 from data.user import User
 

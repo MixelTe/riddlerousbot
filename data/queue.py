@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Union
 from sqlalchemy import Column, ForeignKey, Integer, String, orm
 from sqlalchemy.orm import Session
 
-from bfs import SqlAlchemyBase, IdMixin, Log
+from bafser import SqlAlchemyBase, IdMixin, Log
 from data._tables import Tables
 from data.msg import Msg
 from data.queue_user import QueueUser

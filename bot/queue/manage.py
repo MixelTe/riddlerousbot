@@ -1,5 +1,5 @@
 from datetime import timedelta
-from bfs import get_datetime_now
+from bafser import get_datetime_now
 from bot.bot import Bot
 from bot.queue.utils import get_queue_by_reply, silent_mode, update_queue_msg_if_changes, updateQueue, updateQueueLoudness
 from data.queue_user import QueueUser

@@ -7,7 +7,7 @@ def init_values(dev=False, cmd=False):
     if cmd:
         add_parent_to_path()
 
-    from bfs import db_session, init_db_values
+    from bafser import db_session, init_db_values
     from data._roles import Roles
     from data.user import User
 

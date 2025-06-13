@@ -1,7 +1,7 @@
 import logging
 from sqlalchemy.orm import Session
 
-from bfs import Log, db_session
+from bafser import Log, db_session
 from data.user import User
 import tgapi
 

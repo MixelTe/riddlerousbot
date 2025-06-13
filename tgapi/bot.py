@@ -1,7 +1,7 @@
 import re
 from typing import Callable, Tuple, Union
 
-from bfs import ParametrizedLogger, add_file_logger
+from bafser import ParametrizedLogger, add_file_logger
 from tgapi import get_bot_name
 from .types import *
 from .methods import *

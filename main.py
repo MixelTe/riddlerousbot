@@ -1,5 +1,5 @@
 import sys
-from bfs import AppConfig, create_app
+from bafser import AppConfig, create_app
 from scripts.init_values import init_values
 from bot.main import process_update, setup_bot
 import tgapi

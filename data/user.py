@@ -1,7 +1,7 @@
 from sqlalchemy import DefaultClause, Column, BigInteger, Integer, String, Boolean
 from sqlalchemy.orm import Session
 
-from bfs import UserBase, randstr
+from bafser import UserBase, randstr
 from data._roles import Roles
 import tgapi
 

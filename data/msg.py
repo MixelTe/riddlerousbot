@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import Column, DateTime, Integer, BigInteger, String
 from sqlalchemy.orm import Session
 
-from bfs import SqlAlchemyBase, IdMixin, Log
+from bafser import SqlAlchemyBase, IdMixin, Log
 from data._tables import Tables
 from data.user import User
 import tgapi
