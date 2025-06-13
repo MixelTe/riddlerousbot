@@ -1,31 +1,32 @@
 from bot.bot import Bot
-from bot.queue.base import silent_mode
+from bot.utils import silent_mode
+from bot.utils import get_users_by_tags
 from data.screamer import Screamer
+from data.tagger import Tagger
 from data.user import User
 import tgapi
 
 ME = tgapi.MessageEntity
 
 
-@Bot.add_command("goida_<txt>", (("Кричалка", "[new_text] [\\s]"), None), raw_args=True)
+@Bot.add_command("goida_<txt>", (("Кричалка", "[new_text] [\\s]"), None))
 @Bot.cmd_connect_db
-def goida(bot: Bot, args: list[str], txt: str):
+def goida(bot: Bot, args: tgapi.BotCmdArgs, txt: str):
     sl = False
-    if len(args) > 0 and args[0][-2:] == "\\s":
-        _, sl = silent_mode(bot, [args[0], "\\s"])
-        args[0] = args[0][:-2]
+    if args.raw_args != "" and args.raw_args[-2:] == "\\s":
+        _, sl = silent_mode(bot, [args.raw_args, "\\s"])
+        args.raw_args = args.raw_args[:-2]
     t = "🤟 " + bot.user.get_name() + " 🤟\n"
     if not txt:
         return t + "Тыц-тыц!"
     s = Screamer.get_by_cmd(bot.db_sess, txt)
-    if len(args) > 0:
-        text = args[0]
-        if txt == "txt":
+    if args.raw_args != "":
+        if args.raw_args == "txt":
             return None
         if s:
-            s.update_text(bot.user, text)
+            s.update_text(bot.user, args.raw_args)
         else:
-            s = Screamer.new(bot.user, txt, text)
+            s = Screamer.new(bot.user, txt, args.raw_args)
         bot.logger.info(f"uid={bot.user.id} ({bot.user.get_username()}) upd cmd {txt}")
         if sl:
             return None
@@ -35,14 +36,14 @@ def goida(bot: Bot, args: list[str], txt: str):
     ])
 
 
-@Bot.add_command("q", (("Цитата", "<Author>\\n<text>"), None), raw_args=True)
+@Bot.add_command("q", (("Цитата", "<Author>\\n<text>"), None))
 @Bot.cmd_connect_db
-def quote(bot: Bot, args: list[str]):
-    if len(args) == 0:
+def quote(bot: Bot, args: tgapi.BotCmdArgs):
+    if args.raw_args == "":
         return
     if bot.message:
         tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
-    parts = args[0].split("\n")
+    parts = args.raw_args.split("\n")
     author = "\n©" + parts[0] + "\n"
     user = "by " + bot.user.get_name()
     text = "\n".join(parts[1:])
@@ -72,17 +73,17 @@ def all(bot: Bot, args: list[str]):
     bot.sendMessage(text, entities=entities)
 
 
-@Bot.add_command("say", None, raw_args=True)
+@Bot.add_command("say", None)
 @Bot.cmd_connect_db
-def say(bot: Bot, args: list[str]):
+def say(bot: Bot, args: tgapi.BotCmdArgs):
     if bot.user.username != "MixelTe":
         return
     if bot.message:
         tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
-    if len(args) == 0:
+    if args.raw_args == "":
         return
 
-    return args[0]
+    return args.raw_args
 
 
 def check_is_member_of_chat(bot: Bot, user: User):

@@ -6,7 +6,7 @@ from tgapi import get_bot_name
 from .types import *
 from .methods import *
 
-cmd_fn = Callable[["Bot", list[str]], Union[None, str]]
+cmd_fn = Callable[["Bot", "BotCmdArgs"], Union[None, str]]
 cmd_dsc = Union[None, str, Tuple[str, str]]
 
 
@@ -17,7 +17,7 @@ class Bot:
     inline_query: InlineQuery = None
     chosen_inline_result: ChosenInlineResult = None
 
-    _commands: dict[str, Tuple[cmd_fn, Tuple[cmd_dsc, cmd_dsc]], bool] = {}
+    _commands: dict[str, Tuple[cmd_fn, Tuple[cmd_dsc, cmd_dsc]]] = {}
     _sender: Union[User, None] = None
     chat: Union[Chat, None] = None
     TextWrongCommand = "Wrong command"
@@ -61,7 +61,7 @@ class Bot:
         return [(cmd, self._commands[cmd][1][i]) for cmd in keys]
 
     @classmethod
-    def add_command(cls, command: str, description: Union[cmd_dsc, Tuple[cmd_dsc, cmd_dsc]], raw_args=False):
+    def add_command(cls, command: str, description: Union[cmd_dsc, Tuple[cmd_dsc, cmd_dsc]]):
         def wrapper(fn: cmd_fn):
             if isinstance(description, tuple):
                 pub, pri = description
@@ -82,7 +82,7 @@ class Bot:
                     elif param is not None:
                         param += ch
                     else:
-                        if not parts or not parts[-1][0]:
+                        if not parts or parts[-1][1]:
                             parts.append(("", False))
                         parts[-1] = (parts[-1][0] + ch, False)
                 res = ""
@@ -103,13 +103,13 @@ class Bot:
                     return dict(zip(varnames, m.groups()))
                 fn.comparer = comparer
 
-            cls._commands[command] = (fn, (pub, pri), raw_args)
+            cls._commands[command] = (fn, (pub, pri))
             return fn
         return wrapper
 
     @staticmethod
     def cmd_for_admin(fn):
-        def wrapped(bot: Bot, args: list[str], **kwargs):
+        def wrapped(bot: Bot, args: BotCmdArgs, **kwargs):
             if bot.chat is None or bot.sender is None:
                 return "403(500!)"
             ok, r = getChatMember(bot.chat.id, bot.sender.id)
@@ -161,28 +161,14 @@ class Bot:
             self.on_message_text()
 
     def on_command(self, input: str):
-        args = [str.strip(v) for v in input.split()]
-        if len(args) == 0:
+        args = BotCmdArgs(input)
+        if args.command == "":
             return False
-        command = args[0]
-        mention = command.find("@")
-        if mention > 0:
-            bot_name = command[mention:]
-            if bot_name != get_bot_name():
-                return None
-            command = command[:mention]
-        args = args[1:]
-        cmd, kwargs = self._find_command(command)
+        cmd, kwargs = self._find_command(args.command)
         if not cmd:
             return False
-        fn, description, raw_args = cmd
-        if raw_args:
-            i = input.find(" ")
-            if i > 0:
-                args = [input[i:].strip()]
-            else:
-                args = []
-        self.logger.cmd = command
+        fn, description = cmd
+        self.logger.cmd = args.command
         r = fn(self, args, **kwargs)
         if r:
             return r
@@ -253,3 +239,42 @@ class BotLogger(ParametrizedLogger):
             "uname": self.user.username if self.user else "",
             "cmd": self.cmd
         }
+
+
+class BotCmdArgs:
+    input: str
+    args: list[str]
+    raw_args = ""
+    raw_argsI = -1
+    command = ""
+
+    def __init__(self, input: str):
+        self.input = input
+        self.args = [str.strip(v) for v in input.split()]
+
+        if len(self.args) == 0:
+            return
+
+        command = self.args[0]
+        mention = command.find("@")
+        if mention > 0:
+            bot_name = command[mention:]
+            if bot_name != get_bot_name():
+                return
+            command = command[:mention]
+        self.command = command
+
+        self.args = self.args[1:]
+
+        i = input.find(" ")
+        if i > 0:
+            while i < len(input) and input[i] == " ":
+                i += 1
+            self.raw_argsI = MessageEntity.len(input[:i])
+            self.raw_args = input[i:]
+
+    def __getitem__(self, i: int):
+        return self.args[i]
+
+    def __len__(self):
+        return len(self.args)

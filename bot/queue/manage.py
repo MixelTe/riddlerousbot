@@ -1,7 +1,8 @@
 from datetime import timedelta
 from bafser import get_datetime_now
 from bot.bot import Bot
-from bot.queue.utils import get_queue_by_reply, silent_mode, update_queue_msg_if_changes, updateQueue, updateQueueLoudness
+from bot.queue.utils import get_queue_by_reply, update_queue_msg_if_changes, updateQueue, updateQueueLoudness
+from bot.utils import get_users_by_tags, silent_mode
 from data.queue_user import QueueUser
 from data.queue import Queue
 from data.user import User
@@ -12,8 +13,8 @@ from utils import find, parse_int
 @Bot.add_command("queue_rename", (None, ("Переименновать очередь", "<new_name> [\\s]")))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def queue_rename(bot: Bot, args: list[str]):
-    args, s = silent_mode(bot, args)
+def queue_rename(bot: Bot, args: tgapi.BotCmdArgs):
+    s = silent_mode(bot, args)
 
     queue, err = get_queue_by_reply(bot)
     if err:
@@ -35,8 +36,8 @@ def queue_rename(bot: Bot, args: list[str]):
 @Bot.add_command("queue_clear", (None, "Очистить очередь"))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def queue_clear(bot: Bot, args: list[str]):
-    args, s = silent_mode(bot, args)
+def queue_clear(bot: Bot, args: tgapi.BotCmdArgs):
+    s = silent_mode(bot, args)
 
     queue, err = get_queue_by_reply(bot)
     if err:
@@ -53,8 +54,8 @@ def queue_clear(bot: Bot, args: list[str]):
 @Bot.add_command("queue_force_update", (None, "Обновить очередь"))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def queue_force_update(bot: Bot, args: list[str]):
-    args, s = silent_mode(bot, args)
+def queue_force_update(bot: Bot, args: tgapi.BotCmdArgs):
+    silent_mode(bot, args)
 
     queue, err = get_queue_by_reply(bot)
     if err:
@@ -67,8 +68,8 @@ def queue_force_update(bot: Bot, args: list[str]):
 @Bot.add_command("queue_kick", (None, ("Выпнуть из очереди", ["<username> [\\s]", "<number> [\\s]"])))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def queue_kick(bot: Bot, args: list[str]):
-    args, s = silent_mode(bot, args)
+def queue_kick(bot: Bot, args: tgapi.BotCmdArgs):
+    s = silent_mode(bot, args)
 
     queue, err = get_queue_by_reply(bot)
     if err:
@@ -108,8 +109,8 @@ def queue_kick(bot: Bot, args: list[str]):
 @Bot.add_command("queue_kick_cmd", None)
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def queue_kick_cmd(bot: Bot, args: list[str]):
-    args, s = silent_mode(bot, args)
+def queue_kick_cmd(bot: Bot, args: tgapi.BotCmdArgs):
+    s = silent_mode(bot, args)
 
     if len(args) < 3:
         return "not enought args"
@@ -149,8 +150,8 @@ def queue_kick_cmd(bot: Bot, args: list[str]):
 @Bot.add_command("queue_add_to", (None, ("Добавить на позицию в очереди", "<position> <username> [\\s]")))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def queue_add_to(bot: Bot, args: list[str]):
-    args, s = silent_mode(bot, args)
+def queue_add_to(bot: Bot, args: tgapi.BotCmdArgs):
+    s = silent_mode(bot, args)
 
     queue, err = get_queue_by_reply(bot)
     if err:
@@ -202,29 +203,16 @@ def queue_add_to(bot: Bot, args: list[str]):
 @Bot.add_command("queue_set", (None, ("Полностью изменить очередь", "<username> [...<username>]")))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def queue_set(bot: Bot, args: list[str]):
-    args, s = silent_mode(bot, args)
+def queue_set(bot: Bot, args: tgapi.BotCmdArgs):
+    s = silent_mode(bot, args)
 
     queue, err = get_queue_by_reply(bot)
     if err:
         return err
 
-    users: list[User] = []
-    users_not_found: list[str] = []
-    for username in args:
-        user = User.get_by_username(bot.db_sess, username)
-        if user:
-            users.append(user)
-        else:
-            users_not_found.append(username)
-
-    if len(users_not_found) != 0:
-        if len(users_not_found) == 1:
-            txt = f"👻 Этот пользователь не знаком боту: {users_not_found[0]}" + \
-                "\n(если в имени ошибки нет, пускай он хотя бы раз повзаимодействует с ботом)"
-        txt = f"Эти пользователи не знакомы боту: {', '.join(users_not_found)}" + \
-            "\n(если в именах ошибки нет, пускай они хотя бы раз повзаимодействуют с ботом)"
-        bot.sendMessage(txt)
+    users, err = get_users_by_tags(bot, args)
+    if err:
+        bot.sendMessage(err)
 
     if len(users) == 0:
         return

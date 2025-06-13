@@ -1,5 +1,6 @@
 from bot.bot import Bot
-from bot.queue.utils import get_queue, get_queue_by_reply, silent_mode, update_queue_msg_if_changes, updateQueue
+from bot.queue.utils import get_queue, get_queue_by_reply, update_queue_msg_if_changes, updateQueue
+from bot.utils import silent_mode
 from data.queue_user import QueueUser
 from data.queue import Queue
 from data.user import User
@@ -10,8 +11,8 @@ from utils import find
 @Bot.add_command("queue_new", (None, ("Создать новую очередь", "<name> [\\s]")))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def queue_new(bot: Bot, args: list[str]):
-    args, _ = silent_mode(bot, args)
+def queue_new(bot: Bot, args: tgapi.BotCmdArgs):
+    silent_mode(bot, args)
     if len(args) < 1:
         return "Укажите имя очереди\nUsage: /queue_new <name> [\\s]"
 
@@ -30,7 +31,7 @@ def queue_new(bot: Bot, args: list[str]):
 
 @Bot.add_command("queue_enter", None)
 @Bot.cmd_connect_db
-def queue_enter(bot: Bot, args: list[str]):
+def queue_enter(bot: Bot, args: tgapi.BotCmdArgs):
     queue, err = get_queue(bot, args)
     if err:
         return err
@@ -47,7 +48,7 @@ def queue_enter(bot: Bot, args: list[str]):
 
 @Bot.add_command("queue_exit", None)
 @Bot.cmd_connect_db
-def queue_exit(bot: Bot, args: list[str]):
+def queue_exit(bot: Bot, args: tgapi.BotCmdArgs):
     queue, err = get_queue(bot, args)
     if err:
         return err
@@ -64,7 +65,7 @@ def queue_exit(bot: Bot, args: list[str]):
 
 @Bot.add_command("queue_pass", None)
 @Bot.cmd_connect_db
-def queue_pass(bot: Bot, args: list[str]):
+def queue_pass(bot: Bot, args: tgapi.BotCmdArgs):
     queue, err = get_queue(bot, args)
     if err:
         return err
@@ -89,7 +90,7 @@ def queue_pass(bot: Bot, args: list[str]):
 
 @Bot.add_command("queue_end", None)
 @Bot.cmd_connect_db
-def queue_end(bot: Bot, args: list[str]):
+def queue_end(bot: Bot, args: tgapi.BotCmdArgs):
     queue, err = get_queue(bot, args)
     if err:
         return err
@@ -107,8 +108,11 @@ def queue_end(bot: Bot, args: list[str]):
 
 @Bot.add_command("queue_add", (("Добавить в очередь", "<username> [\\s]"), None))
 @Bot.cmd_connect_db
-def queue_add(bot: Bot, args: list[str]):
-    args, s = silent_mode(bot, args)
+def queue_add(bot: Bot, args: tgapi.BotCmdArgs):
+    s = silent_mode(bot, args)
+
+    if len(args) < 1:
+        return "Укажите кого добавить в очередь\nUsage: /queue_add <username> [\\s]"
 
     queue, err = get_queue_by_reply(bot)
     if err:

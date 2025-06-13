@@ -73,7 +73,7 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
     ]]))
 
 
-def get_queue(bot: Bot, args: list[str]):
+def get_queue(bot: Bot, args: tgapi.BotCmdArgs):
     if len(args) < 1:
         return None, "No queue id provided"
 
@@ -97,16 +97,6 @@ def get_queue_by_reply(bot: Bot):
         return None, "Необходимо ответить на сообщение очереди (это не оно, или оно уже не действительно)"
 
     return queue, None
-
-
-def silent_mode(bot: Bot, args: list[str]):
-    s = False
-    if len(args) > 0 and args[-1] == "\\s":
-        s = True
-        args = args[:-1]
-        if bot.message:
-            tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
-    return args, s
 
 
 class update_queue_msg_if_changes():
