@@ -1,12 +1,13 @@
 import sys
 
 
-def main(set=True):
+def main(set=True, dev=False):
     import urllib.parse
     import requests
     try:
-        with open("token.txt") as f:
+        with open("token_dev.txt" if dev else "token.txt") as f:
             token_bot = f.readline().strip()
+            f.readline()
             token_webhook = f.readline().strip()
             url = f.readline().strip() + "webhook"
     except Exception as e:
@@ -25,7 +26,7 @@ def main(set=True):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2 or sys.argv[1] not in ("set", "delete"):
-        print("configureWebhook.py [set|delete]")
+    if (len(sys.argv) == 2 or len(sys.argv) == 3 and sys.argv[2] == "dev") and sys.argv[1] in ("set", "delete"):
+        main(sys.argv[1] == "set", sys.argv[-1] == "dev")
     else:
-        main(sys.argv[1] == "set")
+        print("configureWebhook.py [set|delete] [dev]")
