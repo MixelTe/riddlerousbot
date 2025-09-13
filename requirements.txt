@@ -1,2 +1,2 @@
-bafser==2.2.6
+bafser==2.2.7
 requests
