@@ -5,9 +5,11 @@ from sqlalchemy import BigInteger, Column, ForeignKey, Integer, String, orm
 from sqlalchemy.orm import Session
 
 from bafser import SqlAlchemyBase, IdMixin, Log
-from bot.bot import Bot
 from data._tables import Tables
 from data.user import User
+
+if TYPE_CHECKING:
+    from bot.bot import Bot
 
 
 class Tagger(SqlAlchemyBase, IdMixin):
@@ -23,7 +25,7 @@ class Tagger(SqlAlchemyBase, IdMixin):
         user: User
 
     @staticmethod
-    def update_cmd_in_chat(bot: Bot, cmd: str, users: list[User]):
+    def update_cmd_in_chat(bot: "Bot", cmd: str, users: list[User]):
         users.sort(key=lambda u: u.name)
         chat_id = bot.chat.id
         Tagger.query_all_by_cmd_in_chat(bot.db_sess, cmd, chat_id).delete()
