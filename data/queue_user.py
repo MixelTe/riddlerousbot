@@ -1,10 +1,11 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, orm
-from sqlalchemy.orm import Session
+from datetime import datetime
 
-from bafser import SqlAlchemyBase, Log, get_datetime_now
+from bafser import Log, SqlAlchemyBase, get_datetime_now
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
+
 from data._tables import Tables
 from data.user import User
 
@@ -12,14 +13,11 @@ from data.user import User
 class QueueUser(SqlAlchemyBase):
     __tablename__ = Tables.QueueUser
 
-    queue_id = Column(Integer, ForeignKey("Queue.id"), primary_key=True, nullable=False)
-    user_id = Column(Integer, ForeignKey("User.id"), primary_key=True, nullable=False)
-    enter_date = Column(DateTime, nullable=False)
+    queue_id: Mapped[int] = mapped_column(ForeignKey(f"{Tables.Queue}.id"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey(f"{Tables.User}.id"), primary_key=True)
+    enter_date: Mapped[datetime]
 
-    user = orm.relationship("User")
-
-    if TYPE_CHECKING:
-        user: User
+    user: Mapped[User] = relationship(init=False)
 
     def __repr__(self):
         return f"<QueueUser> qid={self.queue_id} uid={self.user_id}"
@@ -27,6 +25,7 @@ class QueueUser(SqlAlchemyBase):
     @staticmethod
     def new(creator: User, queue_id: int, user_id: int, commit=True):
         db_sess = Session.object_session(creator)
+        assert db_sess
         now = get_datetime_now()
         qu = QueueUser(queue_id=queue_id, user_id=user_id, enter_date=now)
 
@@ -87,13 +86,15 @@ class QueueUser(SqlAlchemyBase):
     @staticmethod
     def delete_all_in_queue(actor: User, queue_id: int):
         db_sess = Session.object_session(actor)
+        assert db_sess
         qus = QueueUser.all_in_queue(db_sess, queue_id)
         for qu in qus:
             qu.delete(actor, commit=False)
         db_sess.commit()
 
-    def delete(self, actor: Session, commit=True):
+    def delete(self, actor: User, commit=True):
         db_sess = Session.object_session(self)
+        assert db_sess
         db_sess.delete(self)
         Log.deleted(self, actor, [
             ("queue_id", self.queue_id),
@@ -125,6 +126,3 @@ class QueueUser(SqlAlchemyBase):
             ("user_id", self.user_id, self.user_id),
             ("enter_date", enter_date.isoformat(), self.enter_date.isoformat()),
         ])
-
-    def get_dict(self):
-        return self.to_dict(only=("queue_id", "user_id", "date"))

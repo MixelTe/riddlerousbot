@@ -1,9 +1,10 @@
 import math
+
+import tgapi
 from bot.bot import Bot
 from data.tic_tac_toe import TicTacToe
 from data.transaction import Transaction
 from data.user import User
-import tgapi
 from utils import parse_int
 
 IKB = tgapi.InlineKeyboardButton
@@ -11,9 +12,11 @@ ME = tgapi.MessageEntity
 GAME_WIN_VALUE = 5
 
 
-@Bot.add_command("tic_tac_toe", (("Крестики нолики", "[oppenent]"), None))
+@Bot.add_command("tic_tac_toe", desc=("Крестики нолики", "[oppenent]"))
 @Bot.cmd_connect_db
-def tic_tac_toe(bot: Bot, args: list[str]):
+def tic_tac_toe(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    assert bot.user
+    assert bot.db_sess
     entities = []
     text = "👾 Крестики-нолики\n"
     entities.append(ME.bold(0, ME.len(text)))
@@ -42,12 +45,14 @@ def tic_tac_toe(bot: Bot, args: list[str]):
     ]]), entities=entities)
 
 
-@Bot.add_command("tic_tac_toe_join", None)
+@Bot.add_command("tic_tac_toe_join")
 @Bot.cmd_connect_db
-def tic_tac_toe_join(bot: Bot, args: list[str]):
+def tic_tac_toe_join(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    assert bot.user
     game, err = get_game(bot, args)
     if err:
         return err
+    assert game
 
     if game.player2_id != None:
         if bot.user.id != game.player2_id:
@@ -59,12 +64,15 @@ def tic_tac_toe_join(bot: Bot, args: list[str]):
     update_msg(game)
 
 
-@Bot.add_command("tic_tac_toe_turn", None)
+@Bot.add_command("tic_tac_toe_turn")
 @Bot.cmd_connect_db
-def tic_tac_toe_turn(bot: Bot, args: list[str]):
+def tic_tac_toe_turn(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    assert bot.user
+    assert bot.db_sess
     game, err = get_game(bot, args)
     if err:
         return err
+    assert game
 
     if len(args) < 3:
         return "No coords provided"
@@ -75,7 +83,7 @@ def tic_tac_toe_turn(bot: Bot, args: list[str]):
     if y is None or y < 0 or y >= 3:
         return "y is NaN"
 
-    if game.player2_id == None:
+    if game.player2 == None:
         return "Игра ещё не началась"
 
     i = y * 3 + x
@@ -108,7 +116,8 @@ def tic_tac_toe_turn(bot: Bot, args: list[str]):
     update_msg(game)
 
 
-def get_game(bot: Bot, args: list[str]):
+def get_game(bot: Bot, args: tgapi.BotCmdArgs):
+    assert bot.db_sess
     if len(args) < 1:
         return None, "No game id provided"
 
@@ -124,6 +133,7 @@ def get_game(bot: Bot, args: list[str]):
 
 
 def update_msg(game: TicTacToe):
+    assert game.player2
     player1_piece = get_player_piece(game.player1.id_tg, True)
     player2_piece = get_player_piece(game.player2.id_tg, False)
     p1name = player1_piece + " " + game.player1.get_username()

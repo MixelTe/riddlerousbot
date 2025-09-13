@@ -1,26 +1,28 @@
 from __future__ import annotations
 
-from sqlalchemy import Column, DateTime, Integer, BigInteger, String
-from sqlalchemy.orm import Session
+from typing import Optional
 
-from bafser import SqlAlchemyBase, IdMixin, Log
+from bafser import IdMixin, Log, SqlAlchemyBase
+from sqlalchemy import BigInteger, String
+from sqlalchemy.orm import Mapped, Session, mapped_column
+
+import tgapi
 from data._tables import Tables
 from data.user import User
-import tgapi
 
 
 class Msg(SqlAlchemyBase, IdMixin):
     __tablename__ = Tables.Msg
 
-    message_id = Column(Integer, nullable=False)
-    message_thread_id = Column(Integer, nullable=True)
-    chat_id = Column(BigInteger, nullable=False)
-    text = Column(String(256))
-    date = Column(DateTime)
+    message_id: Mapped[int]
+    message_thread_id: Mapped[Optional[int]]
+    chat_id: Mapped[int] = mapped_column(BigInteger)
+    text: Mapped[Optional[str]] = mapped_column(String(256))
 
     @staticmethod
-    def new(creator: User, message_id: int, chat_id: int, text: str, message_thread_id: int = None):
+    def new(creator: User, message_id: int, chat_id: int, text: str | None = None, message_thread_id: int | None = None):
         db_sess = Session.object_session(creator)
+        assert db_sess
         msg = Msg(message_id=message_id, chat_id=chat_id, text=text, message_thread_id=message_thread_id)
 
         db_sess.add(msg)
@@ -39,8 +41,6 @@ class Msg(SqlAlchemyBase, IdMixin):
 
     def delete(self, actor: User, commit=True):
         db_sess = Session.object_session(self)
+        assert db_sess
         db_sess.delete(self)
         Log.deleted(self, actor, commit=commit)
-
-    def get_dict(self):
-        return self.to_dict(only=("id", "message_id", "chat_id", "text", "date"))

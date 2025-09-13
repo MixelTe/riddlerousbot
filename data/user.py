@@ -1,29 +1,33 @@
-from sqlalchemy import DefaultClause, Column, BigInteger, Integer, String, Boolean, func
-from sqlalchemy.orm import Session
+from typing import Any, override
 
-from bafser import UserBase, randstr
-from data._roles import Roles
+from bafser import UserBase, UserKwargs, randstr
+from sqlalchemy import BigInteger, String, func
+from sqlalchemy.orm import Mapped, Session, mapped_column
+
 import tgapi
+from data._roles import Roles
 
 
 class User(UserBase):
-    id_tg = Column(BigInteger, index=True, unique=True, nullable=False)
-    is_bot = Column(Boolean, DefaultClause("0"), nullable=False)
-    is_friendly = Column(Boolean, DefaultClause("0"), nullable=False)
-    first_name = Column(String(128), nullable=False)
-    last_name = Column(String(128), nullable=False)
-    username = Column(String(128), nullable=False)
-    language_code = Column(String(16), nullable=False)
-    coins = Column(Integer, DefaultClause("100"), nullable=False)
+    id_tg: Mapped[int] = mapped_column(BigInteger, index=True, unique=True)
+    is_bot: Mapped[bool]
+    is_friendly: Mapped[bool] = mapped_column(server_default="0", init=False)
+    first_name: Mapped[str] = mapped_column(String(128))
+    last_name: Mapped[str] = mapped_column(String(128))
+    username: Mapped[str] = mapped_column(String(128))
+    language_code: Mapped[str] = mapped_column(String(16))
+    coins: Mapped[int] = mapped_column(server_default="100", init=False)
 
     @classmethod
     def new(cls, db_sess: Session, id_tg: int, is_bot: bool, first_name: str, last_name: str, username: str, language_code: str):
         fake_creator = User.get_fake_system()
-        return super().new(fake_creator, id_tg, randstr(8), username, [Roles.user], db_sess,
+        return super().new(fake_creator, str(id_tg), randstr(8), username, [Roles.user], db_sess=db_sess,
                            id_tg=id_tg, is_bot=is_bot, first_name=first_name, last_name=last_name, username=username, language_code=language_code)
 
-    @staticmethod
-    def _new(db_sess: Session, user_kwargs: dict, id_tg: int, is_bot: bool, first_name: str, last_name: str, username: str, language_code: str):
+    @classmethod
+    @override
+    def _new(cls, db_sess: Session, user_kwargs: UserKwargs, *,
+             id_tg: int, is_bot: bool, first_name: str, last_name: str, username: str, language_code: str, **kwargs: Any):
         user = User(**user_kwargs,
                     id_tg=id_tg, is_bot=is_bot, first_name=first_name, last_name=last_name, username=username, language_code=language_code)
         changes = [
@@ -36,8 +40,9 @@ class User(UserBase):
         ]
         return user, changes
 
-    @staticmethod
-    def create_admin(db_sess: Session):
+    @classmethod
+    @override
+    def create_admin(cls, db_sess: Session):
         return User.new(db_sess, 0, False, "Админ", "", "admin", "en")
 
     def __repr__(self):
@@ -76,15 +81,3 @@ class User(UserBase):
         if username.startswith("@"):
             username = username[1:]
         return User.query(db_sess).filter(func.lower(User.username) == username.lower()).first()
-
-    def get_dict(self):
-        return {
-            "id": self.id,
-            "is_admin": self.has_role(Roles.admin),
-            "id_tg": self.id_tg,
-            "is_bot": self.is_bot,
-            "first_name": self.first_name,
-            "last_name": self.last_name,
-            "username": self.username,
-            "language_code": self.language_code,
-        }

@@ -1,3 +1,2 @@
-alembic==1.12.1
-bafser==1.0.6
-requests==2.32.3
+bafser==2.2.6
+requests

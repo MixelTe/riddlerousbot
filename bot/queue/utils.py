@@ -1,4 +1,5 @@
 import math
+
 import tgapi
 from bot.bot import Bot
 from data.queue import Queue
@@ -14,6 +15,8 @@ class updateQueueLoudness:
 
 
 def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
+    assert bot.user
+    assert bot.db_sess
     if loudness >= updateQueueLoudness.scream:
         tgapi.deleteMessage(queue.msg.chat_id, queue.msg.message_id)
         ok, r = bot.sendMessage(f"📝 Очередь {queue.name}:\n⏳ Обновление...")
@@ -33,7 +36,7 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
             queue.update_msg_next(bot.user, None)
     else:
         for i, qu in enumerate(qus):
-            txt += f"{i+1}) {qu.user.get_tagname()}\n"
+            txt += f"{i + 1}) {qu.user.get_tagname()}\n"
 
         if loudness >= updateQueueLoudness.quiet:
             if len(qus) > 1:
@@ -73,7 +76,8 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
     ]]))
 
 
-def get_queue(bot: Bot, args: tgapi.BotCmdArgs):
+def get_queue(bot: Bot, args: tgapi.BotCmdArgs) -> tuple[None, str] | tuple[Queue, None]:
+    assert bot.db_sess
     if len(args) < 1:
         return None, "No queue id provided"
 
@@ -89,6 +93,7 @@ def get_queue(bot: Bot, args: tgapi.BotCmdArgs):
 
 
 def get_queue_by_reply(bot: Bot):
+    assert bot.db_sess
     if not bot.message or not bot.message.reply_to_message:
         return None, "Укажите очередь, ответив на неё"
 
@@ -105,11 +110,13 @@ class update_queue_msg_if_changes():
         self.queue = queue
 
     def __enter__(self):
+        assert self.bot.db_sess
         self.first, self.second = QueueUser.first2_in_queue(self.bot.db_sess, self.queue.id)
         self.count = QueueUser.count_in_queue(self.bot.db_sess, self.queue.id)
         return self
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
+        assert self.bot.db_sess
         first, second = QueueUser.first2_in_queue(self.bot.db_sess, self.queue.id)
         count = QueueUser.count_in_queue(self.bot.db_sess, self.queue.id)
         big_changes = False

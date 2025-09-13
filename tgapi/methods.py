@@ -1,6 +1,7 @@
 from typing import List, Union
-from .utils import call
+
 from .types import *
+from .utils import call
 
 
 def getUpdates(offset: int = 0, timeout: int = 0):
@@ -11,9 +12,9 @@ def getUpdates(offset: int = 0, timeout: int = 0):
 
 
 # https://core.telegram.org/bots/api#sendmessage
-def sendMessage(chat_id: str, text: str, message_thread_id: int = None, use_markdown=False,
-                reply_markup: InlineKeyboardMarkup = None, reply_parameters: ReplyParameters = None,
-                entities: List[MessageEntity] = None):
+def sendMessage(chat_id: str | int, text: str, message_thread_id: int | None = None, use_markdown: bool = False,
+                reply_markup: InlineKeyboardMarkup | None = None, reply_parameters: ReplyParameters | None = None,
+                entities: List[MessageEntity] | None = None):
     ok, r = call("sendMessage", {
         "chat_id": chat_id,
         "message_thread_id": message_thread_id,
@@ -29,8 +30,8 @@ def sendMessage(chat_id: str, text: str, message_thread_id: int = None, use_mark
 
 
 # https://core.telegram.org/bots/api#editmessagetext
-def editMessageText(chat_id: Union[int, str], message_id: int, text: str, use_markdown=False,
-                    reply_markup: InlineKeyboardMarkup = None, entities: List[MessageEntity] = None):
+def editMessageText(chat_id: Union[int, str], message_id: int, text: str, use_markdown: bool = False,
+                    reply_markup: InlineKeyboardMarkup | None = None, entities: List[MessageEntity] | None = None):
     ok, r = call("editMessageText", {
         "chat_id": chat_id,
         "message_id": message_id,
@@ -45,7 +46,7 @@ def editMessageText(chat_id: Union[int, str], message_id: int, text: str, use_ma
 
 
 # https://core.telegram.org/bots/api#editmessagetext
-def editMessageText_inline(inline_message_id: str, text: str, use_markdown=False, reply_markup: InlineKeyboardMarkup = None):
+def editMessageText_inline(inline_message_id: str, text: str, use_markdown=False, reply_markup: InlineKeyboardMarkup | None = None):
     ok, r = call("editMessageText", {
         "inline_message_id": inline_message_id,
         "text": text,
@@ -97,7 +98,7 @@ def answerInlineQuery(
     results: list[InlineQueryResult],
     cache_time: int = 300,
     is_personal: bool = False,
-    next_offset: str = None,
+    next_offset: str | None = None,
     # button: InlineQueryResultsButton = None,
 ):
     ok, r = call("answerInlineQuery", {
@@ -115,9 +116,9 @@ def answerInlineQuery(
 # https://core.telegram.org/bots/api#answercallbackquery
 def answerCallbackQuery(
     callback_query_id: str,
-    text: str = None,
+    text: str | None = None,
     show_alert: bool = False,
-    url: str = None,
+    url: str | None = None,
     cache_time: int = 0,
 ):
     ok, r = call("answerCallbackQuery", {
@@ -133,7 +134,7 @@ def answerCallbackQuery(
 
 
 # https://core.telegram.org/bots/api#setmycommands
-def setMyCommands(commands: list[BotCommand], scope=None, language_code=None):
+def setMyCommands(commands: list[BotCommand], scope: BotCommandScope | None = None, language_code: str | None = None):
     ok, r = call("setMyCommands", {
         "commands": commands,
         "scope": scope,

@@ -1,5 +1,5 @@
-from bot.bot import Bot
 import tgapi
+from bot.bot import Bot
 
 bot = Bot()
 

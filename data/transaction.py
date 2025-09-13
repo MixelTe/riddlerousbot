@@ -1,15 +1,17 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, ForeignKey, Integer, orm
-from sqlalchemy.orm import Session
+from bafser import IdMixin, SqlAlchemyBase
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
-from bafser import SqlAlchemyBase, IdMixin
 if TYPE_CHECKING:
     from bot.bot import Bot
+
+import tgapi
 from data._tables import Tables
 from data.user import User
-import tgapi
 
 ME = tgapi.MessageEntity
 
@@ -17,21 +19,18 @@ ME = tgapi.MessageEntity
 class Transaction(SqlAlchemyBase, IdMixin):
     __tablename__ = Tables.Transaction
 
-    from_id = Column(Integer, ForeignKey("User.id"), nullable=False)
-    to_id = Column(Integer, ForeignKey("User.id"), nullable=True)
-    value = Column(Integer, nullable=False)
+    from_id: Mapped[int] = mapped_column(ForeignKey(f"{Tables.User}.id"))
+    to_id: Mapped[int] = mapped_column(ForeignKey(f"{Tables.User}.id"))
+    value: Mapped[int]
 
-    user_from = orm.relationship("User", foreign_keys=[from_id])
-    user_to = orm.relationship("User", foreign_keys=[to_id])
-
-    if TYPE_CHECKING:
-        user_from: User
-        user_to: User
+    user_from: Mapped[User] = relationship(foreign_keys=[from_id], init=False)
+    user_to: Mapped[User] = relationship(foreign_keys=[to_id], init=False)
 
     @staticmethod
     def new(creator: User, user_from: User, user_to: User, value: int):
         db_sess = Session.object_session(creator)
-        trn = Transaction(user_from=user_from, user_to=user_to, value=value)
+        assert db_sess
+        trn = Transaction(from_id=user_from.id, to_id=user_to.id, value=value)
 
         user_from.coins -= value
         user_to.coins += value
@@ -40,7 +39,7 @@ class Transaction(SqlAlchemyBase, IdMixin):
 
         return trn
 
-    def notify(self, bot: Bot, reply_msg_id: int = None):
+    def notify(self, bot: "Bot", reply_msg_id: int | None = None):
         entities = []
         text = "📝 "
         fname = self.user_from.get_username()
@@ -56,6 +55,3 @@ class Transaction(SqlAlchemyBase, IdMixin):
         text += tname
         reply_parameters = None if reply_msg_id is None else tgapi.ReplyParameters(reply_msg_id)
         bot.sendMessage(text, entities=entities, reply_parameters=reply_parameters)
-
-    def get_dict(self):
-        return self.to_dict(only=("id", "from_id", "to_id", "value"))

@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from bafser import get_datetime_now
+from bafser import get_datetime_now, listfind
 
 import tgapi
 from bot.bot import Bot
@@ -9,18 +9,20 @@ from bot.utils import get_users_from_msg, silent_mode
 from data.queue import Queue
 from data.queue_user import QueueUser
 from data.user import User
-from utils import find, parse_int
+from utils import parse_int
 
 
-@Bot.add_command("queue_rename", (None, ("Переименновать очередь", "<new_name> [\\s]")))
+@Bot.add_command("queue_rename", desc_adm=("Переименновать очередь", "<new_name> [\\s]"))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def queue_rename(bot: Bot, args: tgapi.BotCmdArgs):
+def queue_rename(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    assert bot.user
     s = silent_mode(bot, args)
 
     queue, err = get_queue_by_reply(bot)
     if err:
         return err
+    assert queue
 
     if len(args) < 1:
         return "Укажите новое имя очереди\nUsage: /queue_rename <new_name> [\\s]"
@@ -35,15 +37,17 @@ def queue_rename(bot: Bot, args: tgapi.BotCmdArgs):
         return f"✏ Имя очереди {old_name} обновлено на очередь {name}"
 
 
-@Bot.add_command("queue_clear", (None, "Очистить очередь"))
+@Bot.add_command("queue_clear", desc_adm="Очистить очередь")
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def queue_clear(bot: Bot, args: tgapi.BotCmdArgs):
+def queue_clear(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    assert bot.user
     s = silent_mode(bot, args)
 
     queue, err = get_queue_by_reply(bot)
     if err:
         return err
+    assert queue
 
     QueueUser.delete_all_in_queue(bot.user, queue.id)
 
@@ -53,29 +57,33 @@ def queue_clear(bot: Bot, args: tgapi.BotCmdArgs):
         return f"✏ Очередь {queue.name} очищена"
 
 
-@Bot.add_command("queue_force_update", (None, "Обновить очередь"))
+@Bot.add_command("queue_force_update", desc_adm="Обновить очередь")
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def queue_force_update(bot: Bot, args: tgapi.BotCmdArgs):
+def queue_force_update(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     silent_mode(bot, args)
 
     queue, err = get_queue_by_reply(bot)
     if err:
         return err
+    assert queue
 
     bot.logger.info(f"qid={queue.id}")
     updateQueue(bot, queue, updateQueueLoudness.scream)
 
 
-@Bot.add_command("queue_kick", (None, ("Выпнуть из очереди", ["<username> [\\s]", "<number> [\\s]"])))
+@Bot.add_command("queue_kick", desc_adm=("Выпнуть из очереди", ["<username> [\\s]", "<number> [\\s]"]))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def queue_kick(bot: Bot, args: tgapi.BotCmdArgs):
+def queue_kick(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    assert bot.db_sess
+    assert bot.user
     s = silent_mode(bot, args)
 
     queue, err = get_queue_by_reply(bot)
     if err:
         return err
+    assert queue
 
     if len(args) < 1:
         return "Укажите ник или номер человека в очереди\nUsage: /queue_kick <username> [\\s]\n/queue_kick <position> [\\s]"
@@ -108,10 +116,12 @@ def queue_kick(bot: Bot, args: tgapi.BotCmdArgs):
         return f"🔴 {user.get_tagname()} теперь не в очереди {queue.name}"
 
 
-@Bot.add_command("queue_kick_cmd", None)
+@Bot.add_command("queue_kick_cmd")
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def queue_kick_cmd(bot: Bot, args: tgapi.BotCmdArgs):
+def queue_kick_cmd(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    assert bot.db_sess
+    assert bot.user
     s = silent_mode(bot, args)
 
     if len(args) < 3:
@@ -133,10 +143,10 @@ def queue_kick_cmd(bot: Bot, args: tgapi.BotCmdArgs):
         return "user_id is None"
 
     queue = Queue.get(bot.db_sess, queue_id)
-    uq = QueueUser.get_by_user_id(bot.db_sess, queue.id, user_id)
-
     if queue is None:
         return "queue not found"
+
+    uq = QueueUser.get_by_user_id(bot.db_sess, queue.id, user_id)
     if uq is None:
         return "user not found in queue"
 
@@ -149,15 +159,18 @@ def queue_kick_cmd(bot: Bot, args: tgapi.BotCmdArgs):
         return f"🔴 {user.get_tagname()} теперь не в очереди {queue.name}"
 
 
-@Bot.add_command("queue_add_to", (None, ("Добавить на позицию в очереди", "<position> <username> [\\s]")))
+@Bot.add_command("queue_add_to", desc_adm=("Добавить на позицию в очереди", "<position> <username> [\\s]"))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def queue_add_to(bot: Bot, args: tgapi.BotCmdArgs):
+def queue_add_to(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    assert bot.db_sess
+    assert bot.user
     s = silent_mode(bot, args)
 
     queue, err = get_queue_by_reply(bot)
     if err:
         return err
+    assert queue
 
     if len(args) < 2:
         return "Укажите позицию для вставки и ник человека\nUsage: /queue_add_to <position> <username> [\\s]"
@@ -174,7 +187,7 @@ def queue_add_to(bot: Bot, args: tgapi.BotCmdArgs):
 
     with update_queue_msg_if_changes(bot, queue):
         qus = QueueUser.all_in_queue(bot.db_sess, queue.id)
-        qu = find(qus, lambda x: x.user_id == user.id)
+        qu = listfind(qus, lambda x: x.user_id == user.id)
         if qu is None:
             qu = QueueUser.new(bot.user, queue.id, user.id)
             qus.append(qu)
@@ -202,15 +215,18 @@ def queue_add_to(bot: Bot, args: tgapi.BotCmdArgs):
         return f"🟢 {user.get_tagname()} теперь в очереди {queue.name} на позиции {qui + 1}"
 
 
-@Bot.add_command("queue_set", (None, ("Полностью изменить очередь", "<username> [...<username>]")))
+@Bot.add_command("queue_set", desc_adm=("Полностью изменить очередь", "<username> [...<username>]"))
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def queue_set(bot: Bot, args: tgapi.BotCmdArgs):
+def queue_set(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    assert bot.user
+    assert bot.db_sess
     s = silent_mode(bot, args)
 
     queue, err = get_queue_by_reply(bot)
     if err:
         return err
+    assert queue
 
     users, err = get_users_from_msg(bot, args)
     if err:
@@ -219,7 +235,7 @@ def queue_set(bot: Bot, args: tgapi.BotCmdArgs):
     if len(users) == 0:
         return
 
-    bot.logger.info(f"qid={queue.id} [{'; '.join(f'{u.id} ({u.get_username()})' for u in  users)}]")
+    bot.logger.info(f"qid={queue.id} [{'; '.join(f'{u.id} ({u.get_username()})' for u in users)}]")
     QueueUser.delete_all_in_queue(bot.user, queue.id)
     now = get_datetime_now() - timedelta(seconds=len(users))
     for i, user in enumerate(users):

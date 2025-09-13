@@ -1,27 +1,37 @@
 import re
-from typing import Callable, Tuple, Union
+from typing import Iterable, Type, TypeVar
 
 from bafser import ParametrizedLogger, add_file_logger
-from tgapi import get_bot_name
-from .types import *
-from .methods import *
+from typing_extensions import Protocol
 
-cmd_fn = Callable[["Bot", "BotCmdArgs"], Union[None, str]]
-cmd_dsc = Union[None, str, Tuple[str, str]]
+from tgapi import get_bot_name
+
+from .methods import *
+from .types import *
+
+T = TypeVar("T", bound="Bot")
+type tcmd_dsc_text = str
+type tcmd_dsc_usage = str
+re_param = re.compile("<[a-z]+>", re.IGNORECASE)
 
 
 class Bot:
-    update: Update = None
-    message: Message = None
-    callback_query: CallbackQuery = None
-    inline_query: InlineQuery = None
-    chosen_inline_result: ChosenInlineResult = None
+    class tcmd_fn[T: "Bot"](Protocol):
+        def __call__(self, bot: T, args: "BotCmdArgs", **kwargs: str) -> str | None:
+            ...
+    type tcmd_dsc = tcmd_dsc_text | tuple[tcmd_dsc_text, tcmd_dsc_usage | list[tcmd_dsc_usage]]
 
-    _commands: dict[str, Tuple[cmd_fn, Tuple[cmd_dsc, cmd_dsc]]] = {}
-    _sender: Union[User, None] = None
-    chat: Union[Chat, None] = None
+    update: Update
+    message: Message | None = None
+    callback_query: CallbackQuery | None = None
+    inline_query: InlineQuery | None = None
+    chosen_inline_result: ChosenInlineResult | None = None
+
+    _commands: dict[str, tuple[tcmd_fn, tuple[tcmd_dsc | None, tcmd_dsc | None]]] = {}
+    _sender: User | None = None
+    chat: Chat | None = None
     TextWrongCommand = "Wrong command"
-    logger: "BotLogger" = None
+    logger: "BotLogger"
 
     @property
     def is_callback(self):
@@ -39,37 +49,38 @@ class Bot:
     def init(self):
         fmt = "%(asctime)s;%(levelname)s;%(module)s;%(uid)-10s;%(uname)-15s;%(cmd)-15s;%(message)s"
         self.logger = BotLogger(add_file_logger("logs/bot.csv", "bot", fmt, ["uid", "uname", "cmd"]))
-        get_cmd = lambda v: v if isinstance(v, str) else v[0]
-        get_dsc = lambda key, i: self._commands[key][1][i]
-        replace_vars = lambda cmd: cmd.replace("<", "").replace(">", "")
-        setMyCommands([BotCommand(replace_vars(cmd), get_cmd(get_dsc(cmd, 0))) for cmd in self._commands.keys() if get_dsc(cmd, 0)])
-        setMyCommands([BotCommand(replace_vars(cmd), get_cmd(get_dsc(cmd, 1) or get_dsc(cmd, 0))) for cmd in self._commands.keys()
-                       if get_dsc(cmd, 0) or get_dsc(cmd, 1)], BotCommandScope.all_chat_administrators())
 
-    def get_my_commands(self, admin_only=False):
-        pub_keys = [key for key in self._commands.keys() if self._commands[key][1][0]]
-        prv_keys = [key for key in self._commands.keys() if self._commands[key][1][1]]
-        if admin_only:
-            keys = prv_keys
-            i = 1
-            for key in pub_keys:
-                if key in keys:
-                    keys.remove(key)
-        else:
-            keys = pub_keys
-            i = 0
-        return [(cmd, self._commands[cmd][1][i]) for cmd in keys]
+        def get_desc(v: Bot.tcmd_dsc):
+            return v if isinstance(v, str) else v[0]
+
+        for_all: list[BotCommand] = []
+        for_adm: list[BotCommand] = []
+        for cmd in self._commands.keys():
+            pub = self._commands[cmd][1][0]
+            adm = self._commands[cmd][1][1]
+            if not adm:
+                adm = pub
+            cmd = re_param.sub("", cmd)
+            if pub:
+                for_all.append(BotCommand(cmd, get_desc(pub)))
+            if adm:
+                for_adm.append(BotCommand(cmd, get_desc(adm)))
+
+        setMyCommands(for_all)
+        setMyCommands(for_adm, BotCommandScope.all_chat_administrators())
+
+    def get_my_commands(self, for_admin=False):
+        i = 1 if for_admin else 0
+        r: list[tuple[str, Bot.tcmd_dsc]] = []
+        for key in self._commands.keys():
+            v = self._commands[key][1][i]
+            if v:
+                r.append((key, v))
+        return r
 
     @classmethod
-    def add_command(cls, command: str, description: Union[cmd_dsc, Tuple[cmd_dsc, cmd_dsc]]):
-        def wrapper(fn: cmd_fn):
-            if isinstance(description, tuple):
-                pub, pri = description
-            else:
-                pub, pri = description, description
-                if pri is None:
-                    pri = pub
-
+    def add_command(cls: Type[T], command: str, *, desc: tcmd_dsc | None = None, desc_adm: tcmd_dsc | None = None):
+        def wrapper(fn: Bot.tcmd_fn[T]):
             if "<" in command:
                 parts = []
                 param = None
@@ -94,16 +105,16 @@ class Bot:
                     else:
                         res += part
                 reg = re.compile(res, re.IGNORECASE)
-                fn.regex = reg
+                fn.regex = reg  # type: ignore
 
                 def comparer(cmd: str):
-                    m = fn.regex.match(cmd)
+                    m = fn.regex.match(cmd)  # type: ignore
                     if not m or len(m.groups()) != len(varnames):
                         return None
                     return dict(zip(varnames, m.groups()))
-                fn.comparer = comparer
+                fn.comparer = comparer  # type: ignore
 
-            cls._commands[command] = (fn, (pub, pri))
+            cls._commands[command] = (fn, (desc, desc_adm))
             return fn
         return wrapper
 
@@ -131,18 +142,18 @@ class Bot:
         self.sender = None
         self.chat = None
         self.logger._reset()
-        if update.message and update.message.text != "":
+        if self.message and self.message.text != "":
             self.sender = self.message.sender
             self.chat = self.message.chat
             self.on_message()
-        if update.callback_query:
+        if self.callback_query:
             self.sender = self.callback_query.sender
-            self.chat = self.callback_query.message.chat
+            self.chat = self.callback_query.message.chat if self.callback_query.message else None
             self.on_callback_query()
-        if update.inline_query:
+        if self.inline_query:
             self.sender = self.inline_query.sender
             self.on_inline_query()
-        if update.chosen_inline_result:
+        if self.chosen_inline_result:
             self.sender = self.chosen_inline_result.sender
             self.on_chosen_inline_result()
 
@@ -150,6 +161,7 @@ class Bot:
         pass
 
     def on_message(self):
+        assert self.message
         if self.message.text.startswith("/"):
             r = self.on_command(self.message.text[1:])
             if r:
@@ -180,12 +192,13 @@ class Bot:
             return c, {}
         for c in self._commands.values():
             if hasattr(c[0], "comparer"):
-                kwargs = c[0].comparer(cmd)
+                kwargs = c[0].comparer(cmd)  # type: ignore
                 if kwargs:
                     return c, kwargs
         return None, {}
 
     def on_callback_query(self):
+        assert self.callback_query
         r = self.on_command(self.callback_query.data)
         if r:
             self.answerCallbackQuery(r if isinstance(r, str) else None)
@@ -195,15 +208,15 @@ class Bot:
     def on_inline_query(self):
         self.answerInlineQuery([])
 
-    def sendMessage(self, text: str, message_thread_id: int = None, use_markdown=False,
-                    reply_markup: InlineKeyboardMarkup = None, reply_parameters: ReplyParameters = None,
-                    entities: List[MessageEntity] = None):
+    def sendMessage(self, text: str, message_thread_id: int | None = None, use_markdown=False,
+                    reply_markup: InlineKeyboardMarkup | None = None, reply_parameters: ReplyParameters | None = None,
+                    entities: List[MessageEntity] | None = None):
         chat_id = None
         if self.message:
             chat_id = self.message.chat.id
             if message_thread_id is None and self.message.is_topic_message:
                 message_thread_id = self.message.message_thread_id
-        elif self.callback_query:
+        elif self.callback_query and self.callback_query.message:
             chat_id = self.callback_query.message.chat.id
             if message_thread_id is None:
                 message_thread_id = self.callback_query.message.message_thread_id
@@ -211,13 +224,13 @@ class Bot:
             raise Exception("tgapi: cant send message without chat id")
         return sendMessage(chat_id, text, message_thread_id, use_markdown, reply_markup, reply_parameters, entities)
 
-    def answerCallbackQuery(self, text: str = None, show_alert: bool = False, url: str = None, cache_time: int = 0):
+    def answerCallbackQuery(self, text: str | None = None, show_alert: bool = False, url: str | None = None, cache_time: int = 0):
         if self.callback_query is None:
             raise Exception("tgapi: Bot.answerCallbackQuery is avaible only inside on_callback_query")
         return answerCallbackQuery(self.callback_query.id, text, show_alert, url, cache_time)
 
-    def answerInlineQuery(self, results: list[InlineQueryResult], cache_time: int = 300, is_personal: bool = False, next_offset: str = None):
-        if self.callback_query is None:
+    def answerInlineQuery(self, results: list[InlineQueryResult], cache_time: int = 300, is_personal: bool = False, next_offset: str | None = None):
+        if self.inline_query is None:
             raise Exception("tgapi: Bot.answerInlineQuery is avaible only inside on_inline_query")
         return answerInlineQuery(self.inline_query.id, results, cache_time, is_personal, next_offset)
 
@@ -226,7 +239,7 @@ class Bot:
 
 
 class BotLogger(ParametrizedLogger):
-    user: User = None
+    user: User | None = None
     cmd = ""
 
     def _reset(self):
@@ -241,7 +254,7 @@ class BotLogger(ParametrizedLogger):
         }
 
 
-class BotCmdArgs:
+class BotCmdArgs(Iterable[str]):
     input: str
     args: list[str]
     raw_args = ""
@@ -278,3 +291,7 @@ class BotCmdArgs:
 
     def __len__(self):
         return len(self.args)
+
+    def __iter__(self):
+        for arg in self.args:
+            yield arg

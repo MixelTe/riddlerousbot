@@ -1,36 +1,33 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, ForeignKey, Integer, String, orm
-from sqlalchemy.orm import Session
+from typing import Optional
 
-from bafser import SqlAlchemyBase, IdMixin, Log
+from bafser import IdMixin, Log, SqlAlchemyBase
+from sqlalchemy import ForeignKey, String
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
+
+import tgapi
 from data._tables import Tables
 from data.msg import Msg
 from data.user import User
-import tgapi
 
 
 class TicTacToe(SqlAlchemyBase, IdMixin):
     __tablename__ = Tables.TicTacToe
 
-    msg_id = Column(Integer, ForeignKey("Msg.id"), nullable=False)
-    player1_id = Column(Integer, ForeignKey("User.id"), nullable=False)
-    player2_id = Column(Integer, ForeignKey("User.id"), nullable=True)
-    field = Column(String(10), nullable=False)
+    msg_id: Mapped[int] = mapped_column(ForeignKey(f"{Tables.Msg}.id"))
+    player1_id: Mapped[int] = mapped_column(ForeignKey(f"{Tables.User}.id"))
+    player2_id: Mapped[Optional[int]] = mapped_column(ForeignKey(f"{Tables.User}.id"))
+    field: Mapped[str] = mapped_column(String(10))
 
-    msg = orm.relationship("Msg", foreign_keys=[msg_id])
-    player1 = orm.relationship("User", foreign_keys=[player1_id])
-    player2 = orm.relationship("User", foreign_keys=[player2_id])
-
-    if TYPE_CHECKING:
-        msg: Msg
-        player1: User
-        player2: User
+    msg: Mapped[Msg] = relationship(init=False)
+    player1: Mapped[User] = relationship(foreign_keys=[player1_id], init=False)
+    player2: Mapped[Optional[User]] = relationship(foreign_keys=[player2_id], init=False)
 
     @staticmethod
-    def new(creator: User, msg_id: int, player1_id: int, player2_id: int = None):
+    def new(creator: User, msg_id: int, player1_id: int, player2_id: int | None = None):
         db_sess = Session.object_session(creator)
+        assert db_sess
         field = "0" * 9
         game = TicTacToe(msg_id=msg_id, player1_id=player1_id, player2_id=player2_id, field=field)
 
@@ -44,7 +41,7 @@ class TicTacToe(SqlAlchemyBase, IdMixin):
         return game
 
     @staticmethod
-    def new_by_message(creator: User, message: tgapi.Message, player1_id: int, player2_id: int = None):
+    def new_by_message(creator: User, message: tgapi.Message, player1_id: int, player2_id: int | None = None):
         msg = Msg.new_from_data(creator, message)
         return TicTacToe.new(creator, msg.id, player1_id, player2_id)
 
@@ -61,7 +58,7 @@ class TicTacToe(SqlAlchemyBase, IdMixin):
         Log.updated(self, actor, [("player2_id", old_player2_id, player2_id)])
 
     def get_status(self):
-        winner: int = None
+        winner: int | None = None
 
         def set_winner(row):
             nonlocal winner
@@ -87,6 +84,3 @@ class TicTacToe(SqlAlchemyBase, IdMixin):
             return "draw", 0
         turn = 1 if c2 > c1 else 2
         return "turn", turn
-
-    def get_dict(self):
-        return self.to_dict(only=("id", "msg_id", "player1_id", "player2_id"))

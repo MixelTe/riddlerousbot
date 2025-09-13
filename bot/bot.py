@@ -1,50 +1,48 @@
 import logging
-from sqlalchemy.orm import Session
 
 from bafser import Log, db_session
-from data.user import User
+from sqlalchemy.orm import Session
+
 import tgapi
+from data.user import User
 
 
 class Bot(tgapi.Bot):
-    db_sess: Session = None
-    user: User = None
+    db_sess: Session | None = None
+    user: User | None = None
 
     @staticmethod
-    def cmd_connect_db(fn):
-        def wrapped(bot: Bot, args: tgapi.BotCmdArgs, **kwargs):  # noqa: F811
-            db_sess = db_session.create_session()
-            bot.db_sess = db_sess
-            if bot.sender is not None:
+    def cmd_connect_db(fn: tgapi.Bot.tcmd_fn["Bot"]):
+        def wrapped(bot: Bot, args: tgapi.BotCmdArgs, **kwargs: str):
+            assert bot.sender
+            with db_session.create_session() as db_sess:
+                bot.db_sess = db_sess
                 user = User.get_by_id_tg(db_sess, bot.sender.id)
                 if user is None:
                     user = User.new_from_data(db_sess, bot.sender)
-            bot.user = user
-            try:
+                bot.user = user
                 return fn(bot, args, **kwargs)
-            finally:
-                db_sess.close()
         return wrapped
 
     def on_message(self):
-        if self.message.chat.type == "private":
-            db_sess = db_session.create_session()
-            try:
-                user = User.get_by_id_tg(db_sess, self.sender.id)
-                if not user.is_friendly:
-                    user.is_friendly = True
-                    Log.updated(user, user, [("is_friendly", False, True)])
-            except Exception as x:
-                logging.error(x)
-            finally:
-                db_sess.close()
+        if self.message and self.message.chat.type == "private" and self.sender:
+            with db_session.create_session() as db_sess:
+                try:
+                    user = User.get_by_id_tg(db_sess, self.sender.id)
+                    if user is None:
+                        user = User.new_from_data(db_sess, self.sender)
+                    if not user.is_friendly:
+                        user.is_friendly = True
+                        Log.updated(user, user, [("is_friendly", False, True)])
+                except Exception as x:
+                    logging.error(x)
         super().on_message()
 
 
-@Bot.add_command("help", None)
-def help(bot: Bot, args: tgapi.BotCmdArgs):  # noqa: F811
-    def format_cmd(cmd):
-        cmd, desc = cmd
+@Bot.add_command("help")
+def help(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    def format_cmd(v: tuple[str, tgapi.Bot.tcmd_dsc]):
+        cmd, desc = v
         if isinstance(desc, str):
             return f"/{cmd} - {desc}"
         desc, hints = desc
@@ -60,7 +58,7 @@ def help(bot: Bot, args: tgapi.BotCmdArgs):  # noqa: F811
     return txt
 
 
-import bot.queue.base
-import bot.queue.manage
-import bot.commands
-import bot.tic_tac_toe
+from . import commands
+from .queue import base
+from .queue import manage
+from . import tic_tac_toe

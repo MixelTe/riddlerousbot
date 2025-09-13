@@ -1,8 +1,8 @@
 import logging
-from typing import Any, Union
+from types import UnionType
+from typing import Any, Union, get_args, get_origin
 
 import requests
-
 
 token_bot = ""
 bot_name = ""
@@ -35,7 +35,7 @@ def get_bot_name():
     return bot_name
 
 
-def call(method: str, json: Union["JsonObj", dict[str, Any]] = None, timeout: int = None):
+def call(method: str, json: "JsonObj | dict[str, Any]", timeout: int | None = None):
     if timeout is not None and timeout <= 0:
         timeout = None
     if isinstance(json, dict):
@@ -72,6 +72,14 @@ class ParsedJson:
                 t = a[key]
                 if isinstance(t, type) and issubclass(t, ParsedJson):
                     v = t(v)
+                else:
+                    torigin = get_origin(t)
+                    targs = get_args(t)
+                    if torigin in (UnionType, Union):
+                        for t in targs:
+                            if isinstance(t, type) and issubclass(t, ParsedJson):
+                                v = t(v)
+                                break
             if hasattr(self, key):
                 setattr(self, key, v)
 
@@ -98,6 +106,7 @@ class JsonObj:
                 r[field] = v
         return r
 
+    @staticmethod
     def _item_to_json(v: Any):
         if isinstance(v, JsonObj):
             return v.to_json()

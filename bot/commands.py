@@ -9,9 +9,11 @@ from data.tagger import Tagger
 ME = tgapi.MessageEntity
 
 
-@Bot.add_command("goida_<txt>", (("Кричалка", "[new_text] [\\s]"), None))
+@Bot.add_command("goida_<txt>", desc=("Кричалка", "[new_text] [\\s]"))
 @Bot.cmd_connect_db
-def goida(bot: Bot, args: tgapi.BotCmdArgs, txt: str):
+def goida(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
+    assert bot.user
+    assert bot.db_sess
     sl = False
     if args.raw_args != "" and args.raw_args[-2:] == "\\s":
         silent_mode_on(bot)
@@ -37,9 +39,10 @@ def goida(bot: Bot, args: tgapi.BotCmdArgs, txt: str):
     ])
 
 
-@Bot.add_command("q", (("Цитата", "<Author>\\n<text>"), None))
+@Bot.add_command("q", desc=("Цитата", "<Author>\\n<text>"))
 @Bot.cmd_connect_db
-def quote(bot: Bot, args: tgapi.BotCmdArgs):
+def quote(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    assert bot.user
     if args.raw_args == "":
         return
     if bot.message:
@@ -54,10 +57,10 @@ def quote(bot: Bot, args: tgapi.BotCmdArgs):
     ])
 
 
-@Bot.add_command("all<txt>_set", (None, "Настроить список для вызова всех"))
+@Bot.add_command("all<txt>_set", desc="Настроить список для вызова всех")
 @Bot.cmd_connect_db
 @Bot.cmd_for_admin
-def all_set(bot: Bot, args: tgapi.BotCmdArgs, txt: str):
+def all_set(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
     if not bot.message:
         return "Call by message"
     sl = silent_mode(bot, args)
@@ -70,10 +73,11 @@ def all_set(bot: Bot, args: tgapi.BotCmdArgs, txt: str):
         return f"✏ Изменён список команды /all{txt}\n" + "\n".join([user.get_name() for user in users])
 
 
-@Bot.add_command("all<txt>", "Вызвать всех!")
+@Bot.add_command("all<txt>", desc="Вызвать всех!")
 @Bot.cmd_connect_db
-def all(bot: Bot, args: tgapi.BotCmdArgs, txt: str):
-    if not bot.message:
+def all(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
+    assert bot.db_sess
+    if not bot.message or not bot.chat:
         return "Call by message"
     silent_mode(bot, args)
 
@@ -119,9 +123,10 @@ def all(bot: Bot, args: tgapi.BotCmdArgs, txt: str):
     bot.sendMessage(text, entities=entities)
 
 
-@Bot.add_command("say", None)
+@Bot.add_command("say")
 @Bot.cmd_connect_db
-def say(bot: Bot, args: tgapi.BotCmdArgs):
+def say(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    assert bot.user
     if bot.user.username != "MixelTe":
         return
     if bot.message:

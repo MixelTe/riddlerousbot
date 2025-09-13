@@ -1,34 +1,31 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Union
 
-from sqlalchemy import Column, ForeignKey, Integer, String, orm
-from sqlalchemy.orm import Session
+from typing import Optional, Union
 
-from bafser import SqlAlchemyBase, IdMixin, Log
+from bafser import IdMixin, Log, SqlAlchemyBase
+from sqlalchemy import ForeignKey, String
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
+
+import tgapi
 from data._tables import Tables
 from data.msg import Msg
-from data.queue_user import QueueUser
 from data.user import User
-import tgapi
 
 
 class Queue(SqlAlchemyBase, IdMixin):
     __tablename__ = Tables.Queue
 
-    msg_id = Column(Integer, ForeignKey("Msg.id"), nullable=False)
-    msg_next_id = Column(Integer, ForeignKey("Msg.id"))
-    name = Column(String(128), nullable=False)
+    msg_id: Mapped[int] = mapped_column(ForeignKey(f"{Tables.Msg}.id"))
+    msg_next_id: Mapped[Optional[int]] = mapped_column(ForeignKey(f"{Tables.Msg}.id"), init=False)
+    name: Mapped[str] = mapped_column(String(128))
 
-    msg = orm.relationship("Msg", foreign_keys=[msg_id])
-    msg_next = orm.relationship("Msg", foreign_keys=[msg_next_id])
-
-    if TYPE_CHECKING:
-        msg: Msg
-        msg_next: Msg
+    msg: Mapped[Msg] = relationship(foreign_keys=[msg_id], init=False)
+    msg_next: Mapped[Optional[Msg]] = relationship(foreign_keys=[msg_next_id], init=False)
 
     @staticmethod
     def new(creator: User, msg_id: int, name: str):
         db_sess = Session.object_session(creator)
+        assert db_sess
         queue = Queue(msg_id=msg_id, name=name)
 
         db_sess.add(queue)
@@ -64,13 +61,8 @@ class Queue(SqlAlchemyBase, IdMixin):
 
     def update_msg_next(self, actor: User, message: Union[tgapi.Message, None]):
         old_msg = self.msg_next
-        if message is None:
-            self.msg_next = None
-        else:
-            self.msg_next = Msg.new_from_data(actor, message)
+        new_msg = None if message is None else Msg.new_from_data(actor, message)
+        self.msg_next = new_msg
         if old_msg:
             old_msg.delete(actor, commit=False)
-        Log.updated(self, actor, [("msg_next_id", None if old_msg is None else old_msg.id, None if self.msg_next is None else self.msg_next.id)])
-
-    def get_dict(self):
-        return self.to_dict(only=("id", "msg_id", "name"))
+        Log.updated(self, actor, [("msg_next_id", None if old_msg is None else old_msg.id, None if new_msg is None else new_msg.id)])

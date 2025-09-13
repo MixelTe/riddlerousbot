@@ -1,9 +1,10 @@
 import sys
-from bafser import AppConfig, create_app
-from scripts.init_values import init_values
-from bot.main import process_update, setup_bot
-import tgapi
 
+from bafser import AppConfig, create_app
+
+import tgapi
+from bot.main import process_update, setup_bot
+from scripts.init_db import init_db
 
 tgapi.setup("token_dev.txt" if __name__ == "__main__" else "token.txt")
 setup_bot()
@@ -13,9 +14,7 @@ app, run = create_app(__name__, AppConfig(
     DELAY_MODE="delay" in sys.argv,
 ))
 
-# run(__name__ == "__main__", lambda: init_dev_values(True), port=5001)
-
-run(False, lambda: init_values(True))
+run(False, init_db)
 
 if __name__ == "__main__":
     print("listening for updates...")
