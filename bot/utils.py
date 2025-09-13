@@ -1,12 +1,29 @@
+import tgapi
 from bot.bot import Bot
 from data.user import User
-import tgapi
 
 
-def get_users_by_tags(bot: Bot, tags: tgapi.BotCmdArgs):
+def get_users_from_msg(bot: Bot, args: tgapi.BotCmdArgs):
+    usernames: list[str] = []
     users: list[User] = []
     users_not_found: list[str] = []
-    for username in tags:
+
+    users_notag = [e for e in bot.message.entities if e.type == "text_mention"]
+    for e in users_notag:
+        username = e.get_msg_text(args.input)
+        if username in usernames:
+            continue
+        usernames.append(username)
+        user = User.get_by_id_tg(bot.db_sess, e.user.id)
+        if user:
+            users.append(user)
+        else:
+            users_not_found.append(username)
+
+    for username in args:
+        if username in usernames:
+            continue
+        usernames.append(username)
         user = User.get_by_username(bot.db_sess, username)
         if user:
             users.append(user)
@@ -31,3 +48,19 @@ def silent_mode(bot: Bot, args: tgapi.BotCmdArgs):
     if bot.message:
         tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
     return True
+
+
+def silent_mode_on(bot: Bot):
+    if bot.message:
+        tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
+
+
+def check_is_member_of_chat(bot: Bot, user: User):
+    if bot.chat is None:
+        return False
+
+    ok, r = tgapi.getChatMember(bot.chat.id, user.id_tg)
+    if not ok:
+        return False
+
+    return r.status != "left" and r.status != "kicked"

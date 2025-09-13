@@ -1,12 +1,14 @@
 from datetime import timedelta
+
 from bafser import get_datetime_now
+
+import tgapi
 from bot.bot import Bot
 from bot.queue.utils import get_queue_by_reply, update_queue_msg_if_changes, updateQueue, updateQueueLoudness
-from bot.utils import get_users_by_tags, silent_mode
-from data.queue_user import QueueUser
+from bot.utils import get_users_from_msg, silent_mode
 from data.queue import Queue
+from data.queue_user import QueueUser
 from data.user import User
-import tgapi
 from utils import find, parse_int
 
 
@@ -210,7 +212,7 @@ def queue_set(bot: Bot, args: tgapi.BotCmdArgs):
     if err:
         return err
 
-    users, err = get_users_by_tags(bot, args)
+    users, err = get_users_from_msg(bot, args)
     if err:
         bot.sendMessage(err)
 

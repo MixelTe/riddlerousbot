@@ -22,56 +22,78 @@ class Chat(ParsedJson):
     is_forum: bool = False
 
 
-class MessageEntity(JsonObj):
-    class _User(JsonObj):
-        def __init__(self, id: int):
+class MessageEntity(JsonObj, ParsedJson):
+    class _User(JsonObj, ParsedJson):
+        id: int = 0
+
+        @staticmethod
+        def new(id: int):
+            self = MessageEntity._User({})
             self.id = id
+            return self
 
     Type = Literal["mention", "hashtag", "cashtag", "bot_command", "url", "email", "phone_number", "bold", "italic", "underline",
                    "strikethrough", "spoiler", "blockquote", "expandable_blockquote", "code", "pre", "text_link", "text_mention", "custom_emoji"]
     # https://core.telegram.org/bots/api#messageentity
-    type: Type
-    offset: int
-    length: int
+    type: Type = "blockquote"
+    offset: int = 0
+    length: int = 0
     url: str = None
     user: _User = None
     language: str = None
     custom_emoji_id: str = None
 
-    def __init__(self, type: Type, offset: int, length: int):
+    @staticmethod
+    def new(type: Type, offset: int, length: int):
+        self = MessageEntity({})
         self.type = type
         self.offset = offset
         self.length = length
+        return self
 
     @staticmethod
     def text_mention(offset: int, length: int, user_id: int):
-        me = MessageEntity("text_mention", offset, length)
-        me.user = MessageEntity._User(user_id)
+        me = MessageEntity.new("text_mention", offset, length)
+        me.user = MessageEntity._User.new(user_id)
         return me
 
     @staticmethod
     def blockquote(offset: int, length: int):
-        return MessageEntity("blockquote", offset, length)
+        return MessageEntity.new("blockquote", offset, length)
 
     @staticmethod
     def spoiler(offset: int, length: int):
-        return MessageEntity("spoiler", offset, length)
+        return MessageEntity.new("spoiler", offset, length)
 
     @staticmethod
     def bold(offset: int, length: int):
-        return MessageEntity("bold", offset, length)
+        return MessageEntity.new("bold", offset, length)
 
     @staticmethod
     def italic(offset: int, length: int):
-        return MessageEntity("italic", offset, length)
+        return MessageEntity.new("italic", offset, length)
 
     @staticmethod
     def underline(offset: int, length: int):
-        return MessageEntity("underline", offset, length)
+        return MessageEntity.new("underline", offset, length)
 
     @staticmethod
     def len(text: str):
-        return len(text.encode("utf-16-le")) // 2
+        return len(MessageEntity.encode_text(text)) // 2
+
+    @staticmethod
+    def encode_text(text: str):
+        return text.encode("utf-16-le")
+
+    @staticmethod
+    def decode_text(text: bytes):
+        return text.decode("utf-16-le")
+
+    def get_msg_text(self, msg: str):
+        text = MessageEntity.encode_text(msg)
+        s = self.offset * 2 - 2
+        e = s + self.length * 2
+        return MessageEntity.decode_text(text[s:e])
 
 
 class Message(ParsedJson):
@@ -85,12 +107,15 @@ class Message(ParsedJson):
     is_topic_message: bool = False
     text: str = ""
     date: int = 0
+    entities: list[MessageEntity] = []
 
     def _parse_field(self, key: str, v: Any):
         if key == "from":
             return "sender", User(v)
         if key == "reply_to_message":
             return "reply_to_message", Message(v)
+        if key == "entities":
+            return "entities", [MessageEntity(me) for me in v]
 
 
 class InlineQuery(ParsedJson):

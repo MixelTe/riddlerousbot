@@ -1,4 +1,4 @@
-from sqlalchemy import DefaultClause, Column, BigInteger, Integer, String, Boolean
+from sqlalchemy import DefaultClause, Column, BigInteger, Integer, String, Boolean, func
 from sqlalchemy.orm import Session
 
 from bafser import UserBase, randstr
@@ -75,7 +75,7 @@ class User(UserBase):
     def get_by_username(db_sess: Session, username: str):
         if username.startswith("@"):
             username = username[1:]
-        return User.query(db_sess).filter(User.username == username).first()
+        return User.query(db_sess).filter(func.lower(User.username) == username.lower()).first()
 
     def get_dict(self):
         return {

@@ -5,6 +5,7 @@ from sqlalchemy import BigInteger, Column, ForeignKey, Integer, String, orm
 from sqlalchemy.orm import Session
 
 from bafser import SqlAlchemyBase, IdMixin, Log
+from bot.bot import Bot
 from data._tables import Tables
 from data.user import User
 
@@ -22,18 +23,20 @@ class Tagger(SqlAlchemyBase, IdMixin):
         user: User
 
     @staticmethod
-    def new(creator: User, cmd: str, chat_id: int, user_id: int, commit=True):
-        db_sess = Session.object_session(creator)
-        msg = Tagger(cmd=cmd, chat_id=chat_id, user_id=user_id)
-
-        db_sess.add(msg)
-        Log.added(msg, creator, [
-            ("cmd", cmd),
-            ("chat_id", chat_id),
-            ("user_id", user_id),
-        ], commit=commit)
-
-        return msg
+    def update_cmd_in_chat(bot: Bot, cmd: str, users: list[User]):
+        users.sort(key=lambda u: u.name)
+        chat_id = bot.chat.id
+        Tagger.query_all_by_cmd_in_chat(bot.db_sess, cmd, chat_id).delete()
+        user_ids = []
+        for user in users:
+            user_ids.append(user.id)
+            tag = Tagger(cmd=cmd, chat_id=chat_id, user_id=user.id)
+            bot.db_sess.add(tag)
+        Log.updated(Tagger.FakeForLog(), bot.user, [
+            ("cmd", cmd, cmd),
+            ("chat_id", chat_id, chat_id),
+            ("user_id", [], user_ids),
+        ])
 
     @staticmethod
     def get_by_value(db_sess: Session, cmd: str, chat_id: int, user_id: int):
@@ -44,12 +47,14 @@ class Tagger(SqlAlchemyBase, IdMixin):
 
     @staticmethod
     def get_all_by_cmd_in_chat(db_sess: Session, cmd: str, chat_id: int):
-        return db_sess.query(Tagger).filter((Tagger.chat_id == chat_id) & (Tagger.cmd == cmd)).all()
+        return Tagger.query_all_by_cmd_in_chat(db_sess, cmd, chat_id).all()
 
-    def delete(self, actor: User):
-        db_sess = Session.object_session(actor)
-        db_sess.delete(self)
-        Log.deleted(self, actor)
+    @staticmethod
+    def query_all_by_cmd_in_chat(db_sess: Session, cmd: str, chat_id: int):
+        return db_sess.query(Tagger).filter((Tagger.chat_id == chat_id) & (Tagger.cmd == cmd))
 
     def get_dict(self):
         return self.to_dict(only=("id", "cmd", "chat_id", "user_id"))
+
+    class FakeForLog:
+        __tablename__ = Tables.Tagger
