@@ -40,7 +40,7 @@ def tic_tac_toe(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     game = TicTacToe.new_by_message(bot.user, msg, bot.user.id, opponent.id if opponent else None)
     bot.logger.info(f"created {game.id} by uid={bot.user.id} ({bot.user.get_username()})")
 
-    tgapi.editMessageText(msg.chat.id, msg.message_id, text, reply_markup=tgapi.InlineKeyboardMarkup([[
+    tgapi.editMessageText(msg.chat.id, msg.message_id, text, reply_markup=tgapi.InlineKeyboardMarkup(inline_keyboard=[[
         IKB.callback("⚔ Принять вызов!", f"tic_tac_toe_join {game.id}"),
     ]]), entities=entities)
 
@@ -180,7 +180,7 @@ def update_msg(game: TicTacToe):
         btns[y].append(IKB.callback(txt, f"tic_tac_toe_turn {game.id} {x} {y}"))
 
     tgapi.editMessageText(game.msg.chat_id, game.msg.message_id, text,
-                          reply_markup=tgapi.InlineKeyboardMarkup(btns), entities=entities)
+                          reply_markup=tgapi.InlineKeyboardMarkup(inline_keyboard=btns), entities=entities)
 
 
 def get_player_piece(id: int, cross: bool):

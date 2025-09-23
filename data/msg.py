@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from bafser import IdMixin, Log, SqlAlchemyBase
+from bafser import IdMixin, Log, SqlAlchemyBase, Undefined
 from sqlalchemy import BigInteger, String
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
@@ -37,7 +37,7 @@ class Msg(SqlAlchemyBase, IdMixin):
 
     @staticmethod
     def new_from_data(creator: User, data: tgapi.Message):
-        return Msg.new(creator, data.message_id, data.chat.id, data.text, data.message_thread_id)
+        return Msg.new(creator, data.message_id, data.chat.id, data.text, Undefined.default(data.message_thread_id))
 
     def delete(self, actor: User, commit=True):
         db_sess = Session.object_session(self)

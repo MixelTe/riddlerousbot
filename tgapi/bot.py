@@ -62,9 +62,9 @@ class Bot:
                 adm = pub
             cmd = re_param.sub("", cmd)
             if pub:
-                for_all.append(BotCommand(cmd, get_desc(pub)))
+                for_all.append(BotCommand(command=cmd, description=get_desc(pub)))
             if adm:
-                for_adm.append(BotCommand(cmd, get_desc(adm)))
+                for_adm.append(BotCommand(command=cmd, description=get_desc(adm)))
 
         setMyCommands(for_all)
         setMyCommands(for_adm, BotCommandScope.all_chat_administrators())
@@ -135,10 +135,10 @@ class Bot:
 
     def process_update(self, update: Update):
         self.update = update
-        self.message = update.message
-        self.callback_query = update.callback_query
-        self.inline_query = update.inline_query
-        self.chosen_inline_result = update.chosen_inline_result
+        self.message = Undefined.default(update.message)
+        self.callback_query = Undefined.default(update.callback_query)
+        self.inline_query = Undefined.default(update.inline_query)
+        self.chosen_inline_result = Undefined.default(update.chosen_inline_result)
         self.sender = None
         self.chat = None
         self.logger._reset()
@@ -148,7 +148,7 @@ class Bot:
             self.on_message()
         if self.callback_query:
             self.sender = self.callback_query.sender
-            self.chat = self.callback_query.message.chat if self.callback_query.message else None
+            self.chat = self.callback_query.message.chat if Undefined.defined(self.callback_query.message) else None
             self.on_callback_query()
         if self.inline_query:
             self.sender = self.inline_query.sender
@@ -199,7 +199,7 @@ class Bot:
 
     def on_callback_query(self):
         assert self.callback_query
-        r = self.on_command(self.callback_query.data)
+        r = self.on_command(Undefined.default(self.callback_query.data, ""))
         if r:
             self.answerCallbackQuery(r if isinstance(r, str) else None)
         else:
@@ -214,11 +214,11 @@ class Bot:
         chat_id = None
         if self.message:
             chat_id = self.message.chat.id
-            if message_thread_id is None and self.message.is_topic_message:
+            if message_thread_id is None and self.message.is_topic_message and Undefined.defined(self.message.message_thread_id):
                 message_thread_id = self.message.message_thread_id
-        elif self.callback_query and self.callback_query.message:
+        elif self.callback_query and Undefined.defined(self.callback_query.message):
             chat_id = self.callback_query.message.chat.id
-            if message_thread_id is None:
+            if message_thread_id is None and Undefined.defined(self.callback_query.message.message_thread_id):
                 message_thread_id = self.callback_query.message.message_thread_id
         else:
             raise Exception("tgapi: cant send message without chat id")

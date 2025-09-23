@@ -1,5 +1,7 @@
 import math
 
+from bafser import Undefined
+
 import tgapi
 from bot.bot import Bot
 from data.queue import Queue
@@ -59,18 +61,18 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
                 if queue.msg_next is not None:
                     tgapi.deleteMessage(queue.msg_next.chat_id, queue.msg_next.message_id)
                 ok, r = bot.sendMessage(txt_next,
-                                        reply_markup=tgapi.InlineKeyboardMarkup([btns]),
+                                        reply_markup=tgapi.InlineKeyboardMarkup(inline_keyboard=[btns]),
                                         message_thread_id=queue.msg.message_thread_id,
-                                        reply_parameters=tgapi.ReplyParameters(queue.msg.message_id))
+                                        reply_parameters=tgapi.ReplyParameters(message_id=queue.msg.message_id))
                 if not ok:
                     return "Error!"
                 queue.update_msg_next(bot.user, r)
             else:
                 if queue.msg_next is not None:
                     tgapi.editMessageText(queue.msg_next.chat_id, queue.msg_next.message_id,
-                                          txt_next, reply_markup=tgapi.InlineKeyboardMarkup([btns]))
+                                          txt_next, reply_markup=tgapi.InlineKeyboardMarkup(inline_keyboard=[btns]))
 
-    tgapi.editMessageText(queue.msg.chat_id, queue.msg.message_id, txt, reply_markup=tgapi.InlineKeyboardMarkup([[
+    tgapi.editMessageText(queue.msg.chat_id, queue.msg.message_id, txt, reply_markup=tgapi.InlineKeyboardMarkup(inline_keyboard=[[
         tgapi.InlineKeyboardButton.callback("🟢 Встать", f"queue_enter {queue.id}"),
         tgapi.InlineKeyboardButton.callback("🔴 Выйти", f"queue_exit {queue.id}"),
     ]]))
@@ -94,7 +96,7 @@ def get_queue(bot: Bot, args: tgapi.BotCmdArgs) -> tuple[None, str] | tuple[Queu
 
 def get_queue_by_reply(bot: Bot):
     assert bot.db_sess
-    if not bot.message or not bot.message.reply_to_message:
+    if not bot.message or not Undefined.defined(bot.message.reply_to_message):
         return None, "Укажите очередь, ответив на неё"
 
     queue = Queue.get_by_message(bot.db_sess, bot.message.reply_to_message)

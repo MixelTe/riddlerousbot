@@ -20,6 +20,10 @@ class Bot(tgapi.Bot):
                 user = User.get_by_id_tg(db_sess, bot.sender.id)
                 if user is None:
                     user = User.new_from_data(db_sess, bot.sender)
+                if user.username != bot.sender.username:
+                    old_username = user.username
+                    user.username = bot.sender.username
+                    Log.updated(user, user, [("username", old_username, user.username)])
                 bot.user = user
                 return fn(bot, args, **kwargs)
         return wrapped
@@ -31,6 +35,10 @@ class Bot(tgapi.Bot):
                     user = User.get_by_id_tg(db_sess, self.sender.id)
                     if user is None:
                         user = User.new_from_data(db_sess, self.sender)
+                    if user.username != self.sender.username:
+                        old_username = user.username
+                        user.username = self.sender.username
+                        Log.updated(user, user, [("username", old_username, user.username)])
                     if not user.is_friendly:
                         user.is_friendly = True
                         Log.updated(user, user, [("is_friendly", False, True)])
@@ -58,7 +66,9 @@ def help(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     return txt
 
 
-from . import commands
-from .queue import base
-from .queue import manage
-from . import tic_tac_toe
+def import_commands():
+    from . import commands, tic_tac_toe
+    from .queue import base, manage
+
+
+import_commands()

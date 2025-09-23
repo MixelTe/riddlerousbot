@@ -53,5 +53,5 @@ class Transaction(SqlAlchemyBase, IdMixin):
         tname = self.user_to.get_username()
         entities.append(ME.text_mention(ME.len(text), ME.len(tname), self.user_from.id_tg))
         text += tname
-        reply_parameters = None if reply_msg_id is None else tgapi.ReplyParameters(reply_msg_id)
+        reply_parameters = None if reply_msg_id is None else tgapi.ReplyParameters(message_id=reply_msg_id)
         bot.sendMessage(text, entities=entities, reply_parameters=reply_parameters)

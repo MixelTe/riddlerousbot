@@ -1,11 +1,10 @@
 import logging
 
+from bafser import response_msg
 from flask import Blueprint, g, request
 
-from bafser import response_msg
-from bot.main import process_update
 import tgapi
-
+from bot.main import process_update
 
 blueprint = Blueprint("api", __name__)
 
@@ -21,5 +20,5 @@ def webhook():
         return response_msg("body is not json", 415)
 
     logging.info(f"webhook: {values}")
-    process_update(tgapi.Update(values))
+    process_update(tgapi.Update.new(values).valid())
     return "ok"

@@ -9,5 +9,5 @@ def setup_bot():
 
 
 def process_update(update: tgapi.Update):
-    print(update)
+    print(f"Update(update_id={update.update_id})")
     bot.process_update(update)

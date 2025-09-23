@@ -8,7 +8,7 @@ def getUpdates(offset: int = 0, timeout: int = 0):
     ok, r = call("getUpdates", {"offset": offset, "timeout": timeout}, timeout=timeout + 5)
     if not ok:
         return False, r
-    return True, list(map(lambda x: Update(x), r["result"]))
+    return True, list(map(lambda x: Update.new(x).valid(), r["result"]))
 
 
 # https://core.telegram.org/bots/api#sendmessage
@@ -26,7 +26,7 @@ def sendMessage(chat_id: str | int, text: str, message_thread_id: int | None = N
     })
     if not ok:
         return False, r
-    return True, Message(r["result"])
+    return True, Message.new(r["result"]).valid()
 
 
 # https://core.telegram.org/bots/api#editmessagetext
@@ -42,7 +42,7 @@ def editMessageText(chat_id: Union[int, str], message_id: int, text: str, use_ma
     })
     if not ok:
         return False, r
-    return True, Message(r["result"])
+    return True, Message.new(r["result"]).valid()
 
 
 # https://core.telegram.org/bots/api#editmessagetext
@@ -55,7 +55,7 @@ def editMessageText_inline(inline_message_id: str, text: str, use_markdown=False
     })
     if not ok:
         return False, r
-    return True, Message(r["result"])
+    return True, Message.new(r["result"]).valid()
 
 
 # https://core.telegram.org/bots/api#editmessagereplymarkup
@@ -67,7 +67,7 @@ def editMessageReplyMarkup(chat_id: Union[int, str], message_id: int, reply_mark
     })
     if not ok:
         return False, r
-    return True, Message(r["result"])
+    return True, Message.new(r["result"]).valid()
 
 
 # https://core.telegram.org/bots/api#editmessagereplymarkup
@@ -78,7 +78,7 @@ def editMessageReplyMarkup_inline(inline_message_id: str, reply_markup: InlineKe
     })
     if not ok:
         return False, r
-    return True, Message(r["result"])
+    return True, Message.new(r["result"]).valid()
 
 
 # https://core.telegram.org/bots/api#deletemessage
@@ -153,7 +153,7 @@ def getChatMember(chat_id: Union[str, int], user_id: int):
     })
     if not ok:
         return False, r
-    return True, ChatMember(r["result"])
+    return True, ChatMember.new(r["result"]).valid()
 
 
 # https://core.telegram.org/bots/api#pinchatmessage

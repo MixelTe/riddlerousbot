@@ -1,8 +1,8 @@
 import logging
-from types import UnionType
-from typing import Any, Union, get_args, get_origin
+from typing import Any
 
 import requests
+from bafser import JsonObj
 
 token_bot = ""
 bot_name = ""
@@ -35,12 +35,13 @@ def get_bot_name():
     return bot_name
 
 
-def call(method: str, json: "JsonObj | dict[str, Any]", timeout: int | None = None):
+def call(method: str, data: JsonObj | dict[str, Any], timeout: int | None = None):
     if timeout is not None and timeout <= 0:
         timeout = None
-    if isinstance(json, dict):
-        json = JsonDynamicObj(json)
-    json = json.to_json()
+    if isinstance(data, dict):
+        json = __item_to_json__(data)
+    else:
+        json = data.json()
     try:
         r = requests.post(f"https://api.telegram.org/bot{token_bot}/{method}", json=json, timeout=timeout)
         if not r.ok:
@@ -54,74 +55,16 @@ def call(method: str, json: "JsonObj | dict[str, Any]", timeout: int | None = No
         raise Exception("tgapi call error")
 
 
-def get_all_fields(obj):
-    return [attr for attr in dir(obj) if not callable(getattr(obj, attr)) and not attr.startswith("__")]
-
-
-class ParsedJson:
-    __id_field__ = None
-
-    def __init__(self, json: dict[str, Any]):
-        a = self.__annotations__
-        for key in json:
-            v = json[key]
-            r = self._parse_field(key, v)
-            if r is not None:
-                key, v = r
-            elif key in a:
-                t = a[key]
-                if isinstance(t, type) and issubclass(t, ParsedJson):
-                    v = t(v)
-                else:
-                    torigin = get_origin(t)
-                    targs = get_args(t)
-                    if torigin in (UnionType, Union):
-                        for t in targs:
-                            if isinstance(t, type) and issubclass(t, ParsedJson):
-                                v = t(v)
-                                break
-            if hasattr(self, key):
-                setattr(self, key, v)
-
-    def _parse_field(self, key: str, v: Any) -> Union[tuple[str, Any], None]:
-        return None
-
-    def __repr__(self) -> str:
-        r = self.__class__.__name__ + "("
-        if self.__id_field__ is not None and hasattr(self, self.__id_field__):
-            r += f"{self.__id_field__}={getattr(self, self.__id_field__)}"
-        return r + ")"
-
-    def __str__(self) -> str:
-        return self.__repr__()
-
-
-class JsonObj:
-    def to_json(self):
+def __item_to_json__(item: Any) -> Any:
+    if isinstance(item, dict):
         r = {}
-        for field in get_all_fields(self):
-            v = getattr(self, field)
-            v = JsonObj._item_to_json(v)
+        for field, v in item.items():
+            v = __item_to_json__(v)
             if v is not None:
                 r[field] = v
         return r
-
-    @staticmethod
-    def _item_to_json(v: Any):
-        if isinstance(v, JsonObj):
-            return v.to_json()
-        if isinstance(v, list):
-            return [JsonObj._item_to_json(vl) for vl in v if vl is not None]
-        return v
-
-    def __repr__(self) -> str:
-        return self.__class__.__name__ + "()"
-
-    def __str__(self) -> str:
-        return self.__repr__()
-
-
-class JsonDynamicObj(JsonObj):
-    def __init__(self, json: dict[str, Any]) -> None:
-        for key in json:
-            setattr(self, key, json[key])
+    if isinstance(item, (list, tuple)):
+        return [__item_to_json__(v) for v in item if v is not None]
+    if isinstance(item, JsonObj):
+        return item.json()
+    return item

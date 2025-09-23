@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from bafser import get_datetime_now, listfind
+from bafser import Undefined, get_datetime_now, listfind
 
 import tgapi
 from bot.bot import Bot
@@ -102,7 +102,7 @@ def queue_kick(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     user = uq.user
 
     if num is not None:
-        bot.sendMessage(f"Удалить {user.get_tagname()} ?", reply_markup=tgapi.InlineKeyboardMarkup([[
+        bot.sendMessage(f"Удалить {user.get_tagname()} ?", reply_markup=tgapi.InlineKeyboardMarkup(inline_keyboard=[[
             tgapi.InlineKeyboardButton.callback("🟢 Да", f"queue_kick_cmd + {queue.id} {user.id}" + (" \\s" if s else "")),
             tgapi.InlineKeyboardButton.callback("🔴 Отмена", f"queue_kick_cmd - {queue.id} {user.id}" + (" \\s" if s else "")),
         ]]))
@@ -127,7 +127,7 @@ def queue_kick_cmd(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     if len(args) < 3:
         return "not enought args"
 
-    if bot.callback_query and bot.callback_query.message:
+    if bot.callback_query and Undefined.defined(bot.callback_query.message):
         msg = bot.callback_query.message
         tgapi.deleteMessage(msg.chat.id, msg.message_id)
 

@@ -1,82 +1,65 @@
-from typing import Any, Literal, Union
+from datetime import datetime
+from typing import Any, Literal, Union, override
 
-from .utils import JsonObj, ParsedJson
+from bafser import JsonObj, JsonOpt, Undefined
 
 
-class User(ParsedJson):
+class User(JsonObj):
     # https://core.telegram.org/bots/api#user
-    __id_field__ = "id"
-    id: int = 0
-    is_bot: bool = False
-    first_name: str = ""
+    id: int
+    is_bot: bool
+    first_name: str
     last_name: str = ""
     username: str = ""
     language_code: str = ""
 
 
-class Chat(ParsedJson):
+class Chat(JsonObj):
     # https://core.telegram.org/bots/api#chat
-    __id_field__ = "id"
-    id: int = 0
-    type: Literal["private", "group", "supergroup", "channel"] = "private"
+    id: int
+    type: Literal["private", "group", "supergroup", "channel"]
     title: str = ""
     is_forum: bool = False
 
 
-class MessageEntity(JsonObj, ParsedJson):
-    class _User(JsonObj, ParsedJson):
-        id: int = 0
-
-        @staticmethod
-        def new(id: int):
-            self = MessageEntity._User({})
-            self.id = id
-            return self
+class MessageEntity(JsonObj):
+    class _User(JsonObj):
+        id: int
 
     Type = Literal["mention", "hashtag", "cashtag", "bot_command", "url", "email", "phone_number", "bold", "italic", "underline",
                    "strikethrough", "spoiler", "blockquote", "expandable_blockquote", "code", "pre", "text_link", "text_mention", "custom_emoji"]
     # https://core.telegram.org/bots/api#messageentity
-    type: Type = "blockquote"
-    offset: int = 0
-    length: int = 0
-    url: str | None = None
-    user: _User | None = None
-    language: str | None = None
-    custom_emoji_id: str | None = None
-
-    @staticmethod
-    def new(type: Type, offset: int, length: int):
-        self = MessageEntity({})
-        self.type = type
-        self.offset = offset
-        self.length = length
-        return self
+    type: Type
+    offset: int
+    length: int
+    url: JsonOpt[str] = Undefined
+    user: JsonOpt[_User] = Undefined
+    language: JsonOpt[str] = Undefined
+    custom_emoji_id: JsonOpt[str] = Undefined
 
     @staticmethod
     def text_mention(offset: int, length: int, user_id: int):
-        me = MessageEntity.new("text_mention", offset, length)
-        me.user = MessageEntity._User.new(user_id)
-        return me
+        return MessageEntity(type="text_mention", offset=offset, length=length, user=MessageEntity._User(id=user_id))
 
     @staticmethod
     def blockquote(offset: int, length: int):
-        return MessageEntity.new("blockquote", offset, length)
+        return MessageEntity(type="blockquote", offset=offset, length=length)
 
     @staticmethod
     def spoiler(offset: int, length: int):
-        return MessageEntity.new("spoiler", offset, length)
+        return MessageEntity(type="spoiler", offset=offset, length=length)
 
     @staticmethod
     def bold(offset: int, length: int):
-        return MessageEntity.new("bold", offset, length)
+        return MessageEntity(type="bold", offset=offset, length=length)
 
     @staticmethod
     def italic(offset: int, length: int):
-        return MessageEntity.new("italic", offset, length)
+        return MessageEntity(type="italic", offset=offset, length=length)
 
     @staticmethod
     def underline(offset: int, length: int):
-        return MessageEntity.new("underline", offset, length)
+        return MessageEntity(type="underline", offset=offset, length=length)
 
     @staticmethod
     def len(text: str):
@@ -97,100 +80,106 @@ class MessageEntity(JsonObj, ParsedJson):
         return MessageEntity.decode_text(text[s:e])
 
 
-class Message(ParsedJson):
-    __id_field__ = "message_id"
+class Message(JsonObj):
     # https://core.telegram.org/bots/api#message
-    message_id: int = 0
-    message_thread_id: int | None = None
-    sender: User | None = None
-    chat: Chat = None  # type: ignore
-    reply_to_message: "Message | None" = None
+    __datetime_parser__ = datetime.fromtimestamp
+    message_id: int
+    message_thread_id: JsonOpt[int]
+    sender: JsonOpt[User]
+    chat: Chat
+    reply_to_message: JsonOpt["Message"]
     is_topic_message: bool = False
     text: str = ""
-    date: int = 0
+    date: datetime
     entities: list[MessageEntity] = []
 
-    def _parse_field(self, key: str, v: Any):
+    @override
+    def _parse(self, key: str, v: Any, json: dict[str, Any]):
         if key == "from":
-            return "sender", User(v)
-        if key == "reply_to_message":
-            return "reply_to_message", Message(v)
-        if key == "entities":
-            return "entities", [MessageEntity(me) for me in v]
+            return "sender", v
 
 
-class InlineQuery(ParsedJson):
+class InaccessibleMessage(JsonObj):
+    # https://core.telegram.org/bots/api#inaccessiblemessage
+    __datetime_parser__ = datetime.fromtimestamp
+    message_id: int
+    chat: Chat
+    date: datetime
+    message_thread_id = Undefined
+
+
+class InlineQuery(JsonObj):
     # https://core.telegram.org/bots/api#inlinequery
-    __id_field__ = "id"
-    id: str = ""
-    sender: User = None  # type: ignore
-    query: str = ""
-    offset: str = ""
-    chat_type: Literal["sender", "private", "group", "supergroup", "channel"] | None = None
+    id: str
+    sender: User
+    query: str
+    offset: str
+    chat_type: JsonOpt[Literal["sender", "private", "group", "supergroup", "channel"]]
 
-    def _parse_field(self, key: str, v: Any):
+    @override
+    def _parse(self, key: str, v: Any, json: dict[str, Any]):
         if key == "from":
-            return "sender", User(v)
+            return "sender", v
 
 
-MaybeInaccessibleMessage = Message
+type MaybeInaccessibleMessage = Message | InaccessibleMessage
 
 
-class CallbackQuery(ParsedJson):
+class CallbackQuery(JsonObj):
     # https://core.telegram.org/bots/api#callbackquery
-    __id_field__ = "id"
-    id: str = ""
-    sender: User = None  # type: ignore
-    message: MaybeInaccessibleMessage | None = None
-    inline_message_id: str = ""
-    chat_instance: str = ""
-    data: str = ""
-    game_short_name: str = ""
+    id: str
+    sender: User
+    message: JsonOpt[MaybeInaccessibleMessage]
+    inline_message_id: JsonOpt[str]
+    chat_instance: str
+    data: JsonOpt[str]
+    game_short_name: JsonOpt[str]
 
-    def _parse_field(self, key: str, v: Any):
+    @override
+    def _parse(self, key: str, v: Any, json: dict[str, Any]):
         if key == "from":
-            return "sender", User(v)
+            return "sender", v
 
 
-class ChosenInlineResult(ParsedJson):
+class ChosenInlineResult(JsonObj):
     # https://core.telegram.org/bots/api#choseninlineresult
-    __id_field__ = "result_id"
-    result_id: str = ""
-    sender: User = None  # type: ignore
+    result_id: str
+    sender: User
     # location: Location
-    inline_message_id: str = ""
-    query: str = ""
+    inline_message_id: JsonOpt[str]
+    query: str
 
-    def _parse_field(self, key: str, v: Any):
+    @override
+    def _parse(self, key: str, v: Any, json: dict[str, Any]):
         if key == "from":
-            return "sender", User(v)
+            return "sender", v
 
 
-class Update(ParsedJson):
+class Update(JsonObj):
     # https://core.telegram.org/bots/api#update
-    __id_field__ = "update_id"
-    update_id: int = 0
-    message: Message | None = None
-    inline_query: InlineQuery | None = None
-    callback_query: CallbackQuery | None = None
-    chosen_inline_result: ChosenInlineResult | None = None
+    update_id: int
+    message: JsonOpt[Message]
+    inline_query: JsonOpt[InlineQuery]
+    callback_query: JsonOpt[CallbackQuery]
+    chosen_inline_result: JsonOpt[ChosenInlineResult]
 
 
-class InputMessageContent(JsonObj):
-    # https://core.telegram.org/bots/api#inputmessagecontent
-    pass
-
-
-class InputTextMessageContent(InputMessageContent):
+class InputTextMessageContent(JsonObj):
     # https://core.telegram.org/bots/api#inputtextmessagecontent
     message_text: str
-    parse_mode: Literal["MarkdownV2"] | None
-    # entities: list[MessageEntity]
+    parse_mode: JsonOpt[Literal["MarkdownV2", "HTML", "Markdown"]] = Undefined
+    entities: JsonOpt[list[MessageEntity]] = Undefined
     # link_preview_options: LinkPreviewOptions
 
-    def __init__(self, message_text, use_markdown=False) -> None:
-        self.message_text = message_text
-        self.parse_mode = "MarkdownV2" if use_markdown else None
+    @staticmethod
+    def nw(message_text: str, use_markdown: bool = False):
+        return InputTextMessageContent(
+            message_text=message_text,
+            parse_mode="MarkdownV2" if use_markdown else Undefined
+        )
+
+
+type InputMessageContent = InputTextMessageContent
 
 
 class CallbackGame(JsonObj):
@@ -198,91 +187,72 @@ class CallbackGame(JsonObj):
     pass
 
 
+class CopyTextButton(JsonObj):
+    # https://core.telegram.org/bots/api#copytextbutton
+    text: str
+
+
 class InlineKeyboardButton(JsonObj):
     # https://core.telegram.org/bots/api#inlinekeyboardbutton
     text: str
-    url: str | None = None
-    callback_data: str | None = None
+    url: JsonOpt[str] = Undefined
+    callback_data: JsonOpt[str] = Undefined
     # web_app: WebAppInfo
     # login_url: LoginUrl
-    # switch_inline_query: str
-    switch_inline_query_current_chat: str
+    switch_inline_query: JsonOpt[str] = Undefined
+    switch_inline_query_current_chat: JsonOpt[str] = Undefined
     # switch_inline_query_chosen_chat: SwitchInlineQueryChosenChat
-    # copy_text: CopyTextButton
-    callback_game: CallbackGame | None = None
+    copy_text: JsonOpt[CopyTextButton] = Undefined
+    callback_game: JsonOpt[CallbackGame] = Undefined
     # pay: bool
-
-    def __init__(self, text: str) -> None:
-        self.text = text
 
     @staticmethod
     def callback(text: str, callback_data: str):
-        b = InlineKeyboardButton(text)
-        b.callback_data = callback_data
-        return b
+        return InlineKeyboardButton(text=text, callback_data=callback_data)
 
     @staticmethod
     def inline_query_current_chat(text: str, query: str):
-        b = InlineKeyboardButton(text)
-        b.switch_inline_query_current_chat = query
-        return b
+        return InlineKeyboardButton(text=text, switch_inline_query_current_chat=query)
 
     @staticmethod
     def run_game(text: str):
-        b = InlineKeyboardButton(text)
-        b.callback_game = CallbackGame()
-        return b
+        return InlineKeyboardButton(text=text, callback_game=CallbackGame())
 
     @staticmethod
     def open_url(text: str, url: str):
-        b = InlineKeyboardButton(text)
-        b.url = url
-        return b
+        return InlineKeyboardButton(text=text, url=url)
 
 
 class InlineKeyboardMarkup(JsonObj):
     # https://core.telegram.org/bots/api#inlinekeyboardmarkup
     inline_keyboard: list[list[InlineKeyboardButton]]
 
-    def __init__(self, inline_keyboard: list[list[InlineKeyboardButton]]) -> None:
-        self.inline_keyboard = inline_keyboard
 
-
-class InlineQueryResult(JsonObj):
+class InlineQueryResult:
     # https://core.telegram.org/bots/api#inlinequeryresult
     pass
 
 
-class InlineQueryResultArticle(InlineQueryResult):
+class InlineQueryResultArticle(JsonObj, InlineQueryResult):
     # https://core.telegram.org/bots/api#inlinequeryresultarticle
-    type = "article"
+    type: Literal["article"] = JsonObj.field(default="article", init=False)
     id: str
     title: str
     input_message_content: InputMessageContent
-    # reply_markup: InlineKeyboardMarkup
-    url: str | None = None
-    description: str | None = None
-    thumbnail_url: str | None = None
-    thumbnail_width: int | None = None
-    thumbnail_height: int | None = None
-
-    def __init__(self, id: str, title: str, input_message_content: InputMessageContent) -> None:
-        self.id = id
-        self.title = title
-        self.input_message_content = input_message_content
+    reply_markup: JsonOpt[InlineKeyboardMarkup] = Undefined
+    url: JsonOpt[str] = Undefined
+    description: JsonOpt[str] = Undefined
+    thumbnail_url: JsonOpt[str] = Undefined
+    thumbnail_width: JsonOpt[int] = Undefined
+    thumbnail_height: JsonOpt[int] = Undefined
 
 
-class InlineQueryResultGame(InlineQueryResult):
+class InlineQueryResultGame(JsonObj, InlineQueryResult):
     # https://core.telegram.org/bots/api#inlinequeryresultgame
-    type = "game"
+    type: Literal["game"] = JsonObj.field(default="game", init=False)
     id: str
     game_short_name: str
-    reply_markup: InlineKeyboardMarkup | None = None
-
-    def __init__(self, id: str, game_short_name: str, reply_markup: InlineKeyboardMarkup | None = None) -> None:
-        self.id = id
-        self.game_short_name = game_short_name
-        self.reply_markup = reply_markup
+    reply_markup: JsonOpt[InlineKeyboardMarkup] = Undefined
 
 
 class BotCommand(JsonObj):
@@ -290,15 +260,11 @@ class BotCommand(JsonObj):
     command: str  # 1-32 characters. Can contain only lowercase English letters, digits and underscores.
     description: str  # 1-256 characters.
 
-    def __init__(self, command: str, description: str):
-        self.command = command
-        self.description = description
 
-
-class ChatMember(ParsedJson):
+class ChatMember(JsonObj):
     # https://core.telegram.org/bots/api#chatmember
-    status: Literal["creator", "administrator", "member", "restricted", "left", "kicked"] = "left"
-    user: User = None  # type: ignore
+    status: Literal["creator", "administrator", "member", "restricted", "left", "kicked"]
+    user: User
 
 
 BotCommandScopeType = Literal["default", "all_private_chats", "all_group_chats",
@@ -307,52 +273,39 @@ BotCommandScopeType = Literal["default", "all_private_chats", "all_group_chats",
 
 class BotCommandScope(JsonObj):
     # https://core.telegram.org/bots/api#botcommandscope
-    type: BotCommandScopeType = "default"
-    chat_id: Union[str, int]
-    user_id: int
-
-    def __init__(self, type: BotCommandScopeType):
-        self.type = type
+    type: BotCommandScopeType
+    chat_id: JsonOpt[Union[str, int]] = Undefined
+    user_id: JsonOpt[int] = Undefined
 
     @staticmethod
     def default():
-        return BotCommandScope("default")
+        return BotCommandScope(type="default")
 
     @staticmethod
     def all_private_chats():
-        return BotCommandScope("all_private_chats")
+        return BotCommandScope(type="all_private_chats")
 
     @staticmethod
     def all_group_chats():
-        return BotCommandScope("all_group_chats")
+        return BotCommandScope(type="all_group_chats")
 
     @staticmethod
     def all_chat_administrators():
-        return BotCommandScope("all_chat_administrators")
+        return BotCommandScope(type="all_chat_administrators")
 
     @staticmethod
     def chat(chat_id: Union[str, int]):
-        scope = BotCommandScope("chat")
-        scope.chat_id = chat_id
-        return scope
+        return BotCommandScope(type="chat", chat_id=chat_id)
 
     @staticmethod
     def chat_administrators(chat_id: Union[str, int]):
-        scope = BotCommandScope("chat_administrators")
-        scope.chat_id = chat_id
-        return scope
+        return BotCommandScope(type="chat_administrators", chat_id=chat_id)
 
     @staticmethod
     def chat_member(chat_id: Union[str, int], user_id: int):
-        scope = BotCommandScope("chat_member")
-        scope.chat_id = chat_id
-        scope.user_id = user_id
-        return scope
+        return BotCommandScope(type="chat_member", chat_id=chat_id, user_id=user_id)
 
 
 class ReplyParameters(JsonObj):
     # https://core.telegram.org/bots/api#replyparameters
     message_id: int
-
-    def __init__(self, message_id: int):
-        self.message_id = message_id

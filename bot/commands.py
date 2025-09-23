@@ -44,7 +44,7 @@ def goida(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
 def quote(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     assert bot.user
     if args.raw_args == "":
-        return
+        return "📖 Для отправки цитаты напишите: \n/q Имя автора\nТекст цитаты с новой строки"
     if bot.message:
         tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
     parts = args.raw_args.split("\n")
