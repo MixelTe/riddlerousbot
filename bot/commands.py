@@ -1,8 +1,11 @@
 from random import choice
 
+from bafser import Undefined
+
 import tgapi
 from bot.bot import Bot
 from bot.utils import get_users_from_msg, silent_mode, silent_mode_on
+from data.misc import Misc
 from data.screamer import Screamer
 from data.tagger import Tagger
 
@@ -127,7 +130,7 @@ def all(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
 @Bot.cmd_connect_db
 def say(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     assert bot.user
-    if bot.user.username != "MixelTe":
+    if not bot.user.is_admin():
         return
     if bot.message:
         tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
@@ -135,3 +138,34 @@ def say(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
         return
 
     return args.raw_args
+
+
+@Bot.add_command("os418_say")
+@Bot.cmd_connect_db
+def os418_say(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    assert bot.db_sess
+    assert bot.user
+    if not bot.user.is_admin():
+        return
+    if bot.message:
+        tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
+        if args.raw_args == "":
+            return
+        misc = Misc.get(bot.db_sess)
+        bot.sendMessage(args.raw_args, chat_id=misc.os418_chat_id, message_thread_id=misc.os418_chat_thread_id, entities=bot.message.entities)
+
+
+@Bot.add_command("os418_set")
+@Bot.cmd_connect_db
+def os418_set(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    assert bot.db_sess
+    assert bot.user
+    if not bot.user.is_admin():
+        return
+    if bot.message:
+        tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
+        misc = Misc.get(bot.db_sess)
+        misc.os418_chat_id = bot.message.chat.id
+        misc.os418_chat_thread_id = Undefined.default(bot.message.message_thread_id)
+        bot.logger.info(f"os418_chat_id={misc.os418_chat_id} os418_chat_thread_id={misc.os418_chat_thread_id}")
+        bot.db_sess.commit()

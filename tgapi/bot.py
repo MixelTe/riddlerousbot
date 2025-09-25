@@ -210,18 +210,18 @@ class Bot:
 
     def sendMessage(self, text: str, message_thread_id: int | None = None, use_markdown=False,
                     reply_markup: InlineKeyboardMarkup | None = None, reply_parameters: ReplyParameters | None = None,
-                    entities: List[MessageEntity] | None = None):
-        chat_id = None
-        if self.message:
-            chat_id = self.message.chat.id
-            if message_thread_id is None and self.message.is_topic_message and Undefined.defined(self.message.message_thread_id):
-                message_thread_id = self.message.message_thread_id
-        elif self.callback_query and Undefined.defined(self.callback_query.message):
-            chat_id = self.callback_query.message.chat.id
-            if message_thread_id is None and Undefined.defined(self.callback_query.message.message_thread_id):
-                message_thread_id = self.callback_query.message.message_thread_id
-        else:
-            raise Exception("tgapi: cant send message without chat id")
+                    entities: List[MessageEntity] | None = None, chat_id: str | int | None = None):
+        if chat_id is None:
+            if self.message:
+                chat_id = self.message.chat.id
+                if message_thread_id is None and self.message.is_topic_message and Undefined.defined(self.message.message_thread_id):
+                    message_thread_id = self.message.message_thread_id
+            elif self.callback_query and Undefined.defined(self.callback_query.message):
+                chat_id = self.callback_query.message.chat.id
+                if message_thread_id is None and Undefined.defined(self.callback_query.message.message_thread_id):
+                    message_thread_id = self.callback_query.message.message_thread_id
+            else:
+                raise Exception("tgapi: cant send message without chat id")
         return sendMessage(chat_id, text, message_thread_id, use_markdown, reply_markup, reply_parameters, entities)
 
     def answerCallbackQuery(self, text: str | None = None, show_alert: bool = False, url: str | None = None, cache_time: int = 0):
