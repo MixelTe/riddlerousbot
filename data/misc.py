@@ -12,5 +12,5 @@ from data._tables import Tables
 class Misc(SqlAlchemyBase, SingletonMixin):
     __tablename__ = Tables.Misc
 
-    os418_chat_id: Mapped[int] = mapped_column(BigInteger)
-    os418_chat_thread_id: Mapped[Optional[int]]
+    os418_chat_id: Mapped[int] = mapped_column(BigInteger, init=False)
+    os418_chat_thread_id: Mapped[Optional[int]] = mapped_column(init=False)
