@@ -5,6 +5,6 @@ config_dev.txt
 __pycache__
 
 logs/
-db/
+/db
 /images
 secret_key_jwt.txt

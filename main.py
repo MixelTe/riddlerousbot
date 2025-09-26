@@ -6,11 +6,7 @@ import tgapi
 from bot.bot import Bot
 from scripts.init_db import init_db
 
-app, run = create_app(__name__, AppConfig(
-    MESSAGE_TO_FRONTEND="",
-    DEV_MODE="dev" in sys.argv,
-    DELAY_MODE="delay" in sys.argv,
-))
+app, run = create_app(__name__, AppConfig(DEV_MODE="dev" in sys.argv))
 
 tgapi.setup(
     config_path="config_dev.txt" if __name__ == "__main__" else "config.txt",
