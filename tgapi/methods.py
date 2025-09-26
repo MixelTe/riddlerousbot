@@ -25,6 +25,11 @@ def setWebhook(url: str, secret_token: str | None = None, allowed_updates: list[
     return call("setWebhook", {"url": url, "secret_token": secret_token, "allowed_updates": allowed_updates})
 
 
+# https://core.telegram.org/bots/api#deletewebhook
+def deleteWebhook(drop_pending_updates: bool | None = None):
+    return call("deleteWebhook", {"drop_pending_updates": drop_pending_updates})
+
+
 # https://core.telegram.org/bots/api#sendmessage
 def sendMessage(chat_id: str | int, text: str, message_thread_id: int | None = None, use_markdown: bool = False,
                 reply_markup: InlineKeyboardMarkup | None = None, reply_parameters: ReplyParameters | None = None,

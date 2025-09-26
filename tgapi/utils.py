@@ -18,6 +18,7 @@ webhook_token = ""
 url = ""
 
 bot: "Bot | None" = None
+webhook_route = "/webhook"
 
 
 def setup(config_path="config.txt", botCls: Type["Bot"] | None = None, import_folder: str | None = None, app: Flask | None = None):
@@ -55,7 +56,7 @@ def setup(config_path="config.txt", botCls: Type["Bot"] | None = None, import_fo
         bot.init()
 
     if app:
-        app.post("/webhook")(webhook)
+        app.post(webhook_route)(webhook)
 
 
 def read_config(path: str):
@@ -74,7 +75,9 @@ def check_webhook_token(token: str):
     return token == webhook_token
 
 
-def get_url(path):
+def get_url(path: str):
+    while path.startswith("/"):
+        path = path[1:]
     return url + path
 
 
@@ -155,16 +158,19 @@ def __item_to_json__(item: Any) -> Any:
 
 def set_webhook(allowed_updates: list[str] | None = None):
     from .methods import setWebhook
-    ok, r = setWebhook(url, webhook_token, allowed_updates)
+    ok, r = setWebhook(get_url(webhook_route), webhook_token, allowed_updates)
     if not ok:
         raise Exception(f"tgapi: cant set webhook\n{r}")
 
 
-def configureWebhook(set: bool, allowed_updates: list[str] | None = None, *, config_path: str | None = None):
-    global bot_token, webhook_token, url
+def configure_webhook(set: bool, allowed_updates: list[str] | None = None, *, config_path: str | None = None):
+    global bot_token, bot_name, webhook_token, url
+    from .methods import deleteWebhook, setWebhook
     if config_path:
         try:
             config = read_config(config_path)
+            bot_token = config["bot_token"]
+            bot_name = config["bot_name"]
             webhook_token = config["webhook_token"]
             url = config["url"].strip("/") + "/"
         except Exception as e:
@@ -172,12 +178,8 @@ def configureWebhook(set: bool, allowed_updates: list[str] | None = None, *, con
             return
 
     if set:
-        method = "setWebhook"
-        data: dict = {"url": url, "secret_token": webhook_token}
-        if allowed_updates:
-            data["allowed_updates"] = allowed_updates
+        ok, r = setWebhook(get_url(webhook_route), webhook_token, allowed_updates)
     else:
-        method = "deleteWebhook"
-        data = {"drop_pending_updates": True}
-    r = requests.post(f"https://api.telegram.org/bot{bot_token}/{method}", json=data)
-    print(f"{r.status_code}\n {r.content}")
+        ok, r = deleteWebhook(True)
+
+    print(f"{ok}\n {r}")
