@@ -1,8 +1,7 @@
-from __future__ import annotations
+from bafser_tgapi import MsgBase
 
-import tgapi
 from data._tables import Tables
 
 
-class Msg(tgapi.MsgBase):
+class Msg(MsgBase):
     __tablename__ = Tables.Msg

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import bafser_tgapi as tgapi
 from bafser import IdMixin, SqlAlchemyBase
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
@@ -9,7 +10,6 @@ from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 if TYPE_CHECKING:
     from bot.bot import Bot
 
-import tgapi
 from data._tables import Tables
 from data.user import User
 

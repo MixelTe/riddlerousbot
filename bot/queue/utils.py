@@ -1,8 +1,8 @@
 import math
 
+import bafser_tgapi as tgapi
 from bafser import Undefined
 
-import tgapi
 from bot.bot import Bot
 from data.queue import Queue
 from data.queue_user import QueueUser

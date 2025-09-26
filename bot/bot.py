@@ -1,22 +1,18 @@
 from typing import override
 
+import bafser_tgapi as tgapi
 from bafser import Log
 from sqlalchemy.orm import Session
 
-import tgapi
 from data.user import User
 
 
 class Bot(tgapi.BotWithDB[User]):
+    _userCls = User
+
     @override
     def get_user(self, db_sess: Session, sender: tgapi.User) -> User:
-        user = User.get_by_id_tg(db_sess, sender.id)
-        if user is None:
-            user = User.new_from_data(db_sess, sender)
-        if user.username != sender.username:
-            old_username = user.username
-            user.username = sender.username
-            Log.updated(user, user, [("username", old_username, user.username)])
+        user = super().get_user(db_sess, sender)
         if self.message and self.message.chat.type == "private":
             if not user.is_friendly:
                 user.is_friendly = True

@@ -1,8 +1,8 @@
 from datetime import timedelta
 
+import bafser_tgapi as tgapi
 from bafser import Undefined, get_datetime_now, listfind
 
-import tgapi
 from bot.bot import Bot
 from bot.queue.utils import get_queue_by_reply, update_queue_msg_if_changes, updateQueue, updateQueueLoudness
 from bot.utils import get_users_from_msg, silent_mode

@@ -1,6 +1,6 @@
+import bafser_tgapi as tgapi
 from bafser import Undefined
 
-import tgapi
 from bot.bot import Bot
 from data.user import User
 

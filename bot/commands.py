@@ -1,8 +1,8 @@
 from random import choice
 
+import bafser_tgapi as tgapi
 from bafser import Undefined
 
-import tgapi
 from bot.bot import Bot
 from bot.utils import get_users_from_msg, silent_mode, silent_mode_on
 from data.misc import Misc

@@ -1,6 +1,6 @@
+import bafser_tgapi as tgapi
 from bafser import listfind
 
-import tgapi
 from bot.bot import Bot
 from bot.queue.utils import get_queue, get_queue_by_reply, update_queue_msg_if_changes, updateQueue
 from bot.utils import silent_mode

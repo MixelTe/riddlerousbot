@@ -1,6 +1,7 @@
 import math
 
-import tgapi
+import bafser_tgapi as tgapi
+
 from bot.bot import Bot
 from data.tic_tac_toe import TicTacToe
 from data.transaction import Transaction

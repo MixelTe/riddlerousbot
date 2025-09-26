@@ -1,8 +1,8 @@
 import sys
 
+import bafser_tgapi as tgapi
 from bafser import AppConfig, create_app
 
-import tgapi
 from bot.bot import Bot
 from scripts.init_db import init_db
 

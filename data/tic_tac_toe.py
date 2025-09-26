@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Optional
 
+import bafser_tgapi as tgapi
 from bafser import IdMixin, Log, SqlAlchemyBase
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
-import tgapi
 from data._tables import Tables
 from data.msg import Msg
 from data.user import User

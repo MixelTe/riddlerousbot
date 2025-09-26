@@ -1,10 +1,10 @@
 import sys
 
-import tgapi
+from bafser_tgapi import configure_webhook
 
 
 def main(set=True, dev=False):
-    tgapi.configure_webhook(set, config_path="config_dev.txt" if dev else "config.txt")
+    configure_webhook(set, config_path="config_dev.txt" if dev else "config.txt")
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
+from bafser_tgapi import TgUserBase
 from sqlalchemy.orm import Mapped, mapped_column
 
-import tgapi
 from data._roles import Roles
 
 
-class User(tgapi.TgUserBase):
+class User(TgUserBase):
     _default_role = Roles.user
 
     is_friendly: Mapped[bool] = mapped_column(server_default="0", init=False)
