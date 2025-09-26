@@ -1,0 +1,4 @@
+bot_token = 1234567890:AAAAAAAAAA_AAAAAAAAA_AAAAAAAAAAAAAA
+bot_name = @Bot
+webhook_token = 36919ad5-fbaf-450f-8fd5-2442acb770ca
+url = https://example.com/

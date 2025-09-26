@@ -125,7 +125,7 @@ def get_game(bot: Bot, args: tgapi.BotCmdArgs):
     if id is None:
         return None, "id is NaN"
 
-    game = TicTacToe.get(bot.db_sess, id)
+    game = TicTacToe.get(bot.db_sess, id, for_update=True)
     if game is None:
         return None, f"game with id={id} doesnt exist"
 

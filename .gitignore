@@ -1,5 +1,5 @@
-token.txt
-token_dev.txt
+config.txt
+config_dev.txt
 
 .venv
 __pycache__

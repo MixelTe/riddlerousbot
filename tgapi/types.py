@@ -4,6 +4,11 @@ from typing import Any, Literal, Union, override
 from bafser import JsonObj, JsonOpt, Undefined
 
 
+class WebhookInfo(JsonObj):
+    # https://core.telegram.org/bots/api#webhookinfo
+    url: str
+
+
 class User(JsonObj):
     # https://core.telegram.org/bots/api#user
     id: int

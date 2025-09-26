@@ -1,13 +1,12 @@
 import re
-from typing import Iterable, Type, TypeVar
+from typing import Callable, Iterable, Self, Type, TypeVar
 
 from bafser import ParametrizedLogger, add_file_logger
 from typing_extensions import Protocol
 
-from tgapi import get_bot_name
-
 from .methods import *
 from .types import *
+from .utils import get_bot_name
 
 T = TypeVar("T", bound="Bot")
 type tcmd_dsc_text = str
@@ -20,6 +19,7 @@ class Bot:
         def __call__(self, bot: T, args: "BotCmdArgs", **kwargs: str) -> str | None:
             ...
     type tcmd_dsc = tcmd_dsc_text | tuple[tcmd_dsc_text, tcmd_dsc_usage | list[tcmd_dsc_usage]]
+    type tcallback[T: "Bot"] = Callable[[T], None]
 
     update: Update
     message: Message | None = None
@@ -28,14 +28,11 @@ class Bot:
     chosen_inline_result: ChosenInlineResult | None = None
 
     _commands: dict[str, tuple[tcmd_fn, tuple[tcmd_dsc | None, tcmd_dsc | None]]] = {}
+    _callback: dict[Callable, tcallback[Self]] = {}
     _sender: User | None = None
     chat: Chat | None = None
     TextWrongCommand = "Wrong command"
     logger: "BotLogger"
-
-    @property
-    def is_callback(self):
-        return self.callback_query is not None
 
     @property
     def sender(self):
@@ -133,7 +130,7 @@ class Bot:
             return fn(bot, args, **kwargs)
         return wrapped
 
-    def process_update(self, update: Update):
+    def _process_update(self, update: Update):
         self.update = update
         self.message = Undefined.default(update.message)
         self.callback_query = Undefined.default(update.callback_query)
@@ -145,34 +142,51 @@ class Bot:
         if self.message and self.message.text != "":
             self.sender = self.message.sender
             self.chat = self.message.chat
-            self.on_message()
+            self._on_message()
         if self.callback_query:
             self.sender = self.callback_query.sender
             self.chat = self.callback_query.message.chat if Undefined.defined(self.callback_query.message) else None
-            self.on_callback_query()
+            self._on_callback_query()
         if self.inline_query:
             self.sender = self.inline_query.sender
-            self.on_inline_query()
+            self._call_callback(self.on_inline_query)
         if self.chosen_inline_result:
             self.sender = self.chosen_inline_result.sender
-            self.on_chosen_inline_result()
+            self._call_callback(self.on_chosen_inline_result)
 
-    def on_message_text(self):
-        pass
+    def _call_callback(self, key: Callable):
+        fn = self._callback.get(key)
+        if fn:
+            fn(self)
 
-    def on_message(self):
+    @classmethod
+    def on_message(cls: Type[T], fn: tcallback[T]):
+        cls._callback[cls.on_message] = fn
+        return fn
+
+    @classmethod
+    def on_inline_query(cls: Type[T], fn: tcallback[T]):
+        cls._callback[cls.on_inline_query] = fn
+        return fn
+
+    @classmethod
+    def on_chosen_inline_result(cls: Type[T], fn: tcallback[T]):
+        cls._callback[cls.on_chosen_inline_result] = fn
+        return fn
+
+    def _on_message(self):
         assert self.message
         if self.message.text.startswith("/"):
-            r = self.on_command(self.message.text[1:])
+            r = self._on_command(self.message.text[1:])
             if r:
                 if isinstance(r, str):
                     self.sendMessage(r)
-            # elif r is False:
-            #     self.sendMessage(self.TextWrongCommand)
+            elif r is False and self.message.chat.type == "private":
+                self.sendMessage(self.TextWrongCommand)
         else:
-            self.on_message_text()
+            self._call_callback(self.on_message)
 
-    def on_command(self, input: str):
+    def _on_command(self, input: str):
         args = BotCmdArgs(input)
         if args.command == "":
             return False
@@ -197,16 +211,13 @@ class Bot:
                     return c, kwargs
         return None, {}
 
-    def on_callback_query(self):
+    def _on_callback_query(self):
         assert self.callback_query
-        r = self.on_command(Undefined.default(self.callback_query.data, ""))
+        r = self._on_command(Undefined.default(self.callback_query.data, ""))
         if r:
             self.answerCallbackQuery(r if isinstance(r, str) else None)
         else:
             self.answerCallbackQuery(self.TextWrongCommand)
-
-    def on_inline_query(self):
-        self.answerInlineQuery([])
 
     def sendMessage(self, text: str, message_thread_id: int | None = None, use_markdown=False,
                     reply_markup: InlineKeyboardMarkup | None = None, reply_parameters: ReplyParameters | None = None,
@@ -234,8 +245,10 @@ class Bot:
             raise Exception("tgapi: Bot.answerInlineQuery is avaible only inside on_inline_query")
         return answerInlineQuery(self.inline_query.id, results, cache_time, is_personal, next_offset)
 
-    def on_chosen_inline_result(self):
-        pass
+
+@Bot.on_inline_query
+def _on_inline_query_empty(bot: Bot):
+    bot.answerInlineQuery([])
 
 
 class BotLogger(ParametrizedLogger):

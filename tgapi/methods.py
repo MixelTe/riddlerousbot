@@ -4,11 +4,25 @@ from .types import *
 from .utils import call
 
 
+# https://core.telegram.org/bots/api#getupdates
 def getUpdates(offset: int = 0, timeout: int = 0):
     ok, r = call("getUpdates", {"offset": offset, "timeout": timeout}, timeout=timeout + 5)
     if not ok:
         return False, r
     return True, list(map(lambda x: Update.new(x).valid(), r["result"]))
+
+
+# https://core.telegram.org/bots/api#getwebhookinfo
+def getWebhookInfo():
+    ok, r = call("getWebhookInfo")
+    if not ok:
+        return False, r
+    return True, WebhookInfo.new(r["result"]).valid()
+
+
+# https://core.telegram.org/bots/api#setwebhook
+def setWebhook(url: str, secret_token: str | None = None, allowed_updates: list[str] | None = None):
+    return call("setWebhook", {"url": url, "secret_token": secret_token, "allowed_updates": allowed_updates})
 
 
 # https://core.telegram.org/bots/api#sendmessage
