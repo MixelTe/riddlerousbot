@@ -26,8 +26,7 @@ class TicTacToe(SqlAlchemyBase, IdMixin):
 
     @staticmethod
     def new(creator: User, msg_id: int, player1_id: int, player2_id: int | None = None):
-        db_sess = Session.object_session(creator)
-        assert db_sess
+        db_sess = creator.db_sess
         field = "0" * 9
         game = TicTacToe(msg_id=msg_id, player1_id=player1_id, player2_id=player2_id, field=field)
 

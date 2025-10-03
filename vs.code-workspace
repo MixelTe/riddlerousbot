@@ -9,6 +9,7 @@
         "editor.formatOnSave": true,
         "editor.formatOnType": true,
 		"python.analysis.typeCheckingMode": "standard",
+        // "debugpy.debugJustMyCode": false,
     },
     "launch": {
         "version": "0.2.0",

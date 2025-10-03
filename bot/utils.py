@@ -6,7 +6,6 @@ from data.user import User
 
 
 def get_users_from_msg(bot: Bot, args: tgapi.BotCmdArgs):
-    assert bot.db_sess
     assert bot.message
     usernames: list[str] = []
     users: list[User] = []

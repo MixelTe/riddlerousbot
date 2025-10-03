@@ -26,7 +26,6 @@ class Tagger(SqlAlchemyBase, IdMixin):
     def update_cmd_in_chat(bot: "Bot", cmd: str, users: list[User]):
         users.sort(key=lambda u: u.name)
         assert bot.chat
-        assert bot.db_sess
         chat_id = bot.chat.id
         Tagger.query_all_by_cmd_in_chat(bot.db_sess, cmd, chat_id).delete()
         user_ids = []

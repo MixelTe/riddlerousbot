@@ -5,15 +5,13 @@ from typing import TYPE_CHECKING
 import bafser_tgapi as tgapi
 from bafser import IdMixin, SqlAlchemyBase
 from sqlalchemy import ForeignKey
-from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
     from bot.bot import Bot
 
 from data._tables import Tables
 from data.user import User
-
-ME = tgapi.MessageEntity
 
 
 class Transaction(SqlAlchemyBase, IdMixin):
@@ -28,8 +26,7 @@ class Transaction(SqlAlchemyBase, IdMixin):
 
     @staticmethod
     def new(creator: User, user_from: User, user_to: User, value: int):
-        db_sess = Session.object_session(creator)
-        assert db_sess
+        db_sess = creator.db_sess
         trn = Transaction(from_id=user_from.id, to_id=user_to.id, value=value)
 
         user_from.coins -= value
@@ -40,18 +37,11 @@ class Transaction(SqlAlchemyBase, IdMixin):
         return trn
 
     def notify(self, bot: "Bot", reply_msg_id: int | None = None):
-        entities = []
-        text = "📝 "
-        fname = self.user_from.get_username()
-        entities.append(ME.text_mention(ME.len(text), ME.len(fname), self.user_from.id_tg))
-        text += fname
-        text += "   ->   "
-        v = f"{self.value} 🧩"
-        entities.append(ME.bold(ME.len(text), ME.len(v)))
-        text += v
-        text += "   ->   "
-        tname = self.user_to.get_username()
-        entities.append(ME.text_mention(ME.len(text), ME.len(tname), self.user_from.id_tg))
-        text += tname
+        msg = tgapi.build_msg("📝 ")
+        msg.text_mention(self.user_from.get_username(), self.user_from.id_tg)
+        msg.text("   ->   ")
+        msg.bold(f"{self.value} 🧩")
+        msg.text("   ->   ")
+        msg.text_mention(self.user_to.get_username(), self.user_to.id_tg)
         reply_parameters = None if reply_msg_id is None else tgapi.ReplyParameters(message_id=reply_msg_id)
-        bot.sendMessage(text, entities=entities, reply_parameters=reply_parameters)
+        bot.sendMessage(msg, reply_parameters=reply_parameters)

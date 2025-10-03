@@ -24,8 +24,7 @@ class QueueUser(SqlAlchemyBase):
 
     @staticmethod
     def new(creator: User, queue_id: int, user_id: int, commit=True):
-        db_sess = Session.object_session(creator)
-        assert db_sess
+        db_sess = creator.db_sess
         now = get_datetime_now()
         qu = QueueUser(queue_id=queue_id, user_id=user_id, enter_date=now)
 
@@ -85,16 +84,14 @@ class QueueUser(SqlAlchemyBase):
 
     @staticmethod
     def delete_all_in_queue(actor: User, queue_id: int):
-        db_sess = Session.object_session(actor)
-        assert db_sess
+        db_sess = actor.db_sess
         qus = QueueUser.all_in_queue(db_sess, queue_id)
         for qu in qus:
             qu.delete(actor, commit=False)
         db_sess.commit()
 
     def delete(self, actor: User, commit=True):
-        db_sess = Session.object_session(self)
-        assert db_sess
+        db_sess = self.db_sess
         db_sess.delete(self)
         Log.deleted(self, actor, [
             ("queue_id", self.queue_id),

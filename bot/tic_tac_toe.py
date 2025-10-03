@@ -8,53 +8,39 @@ from data.transaction import Transaction
 from data.user import User
 from utils import parse_int
 
-IKB = tgapi.InlineKeyboardButton
-ME = tgapi.MessageEntity
 GAME_WIN_VALUE = 5
 
 
-@Bot.add_command("tic_tac_toe", desc=("Крестики нолики", "[oppenent]"))
-@Bot.cmd_connect_db
+@Bot.add_command(desc=("Крестики нолики", "[oppenent]"))
 def tic_tac_toe(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    assert bot.user
-    assert bot.db_sess
-    entities = []
-    text = "👾 Крестики-нолики\n"
-    entities.append(ME.bold(0, ME.len(text)))
+    msgb = tgapi.build_msg().bold("👾 Крестики-нолики\n")
     uname = bot.user.get_username()
-    entities.append(ME.text_mention(ME.len(text), ME.len(uname), bot.user.id_tg))
-    text += uname + " вызывает на дуэль "
+    msgb.text_mention(uname, bot.user.id_tg)
+    msgb.text(" вызывает на дуэль ")
     opponent = None
     if len(args) == 0:
-        text += "первого встречного!"
+        msgb.text("первого встречного!")
     else:
         opponent = User.get_by_username(bot.db_sess, args[0])
         if not opponent:
             return f"👻 Этот пользователь ({args[0]}) не знаком боту (если в имени ошибки нет, пускай он хотя бы раз повзаимодействует с ботом)"
         oname = opponent.get_username()
-        entities.append(ME.text_mention(ME.len(text), ME.len(oname), bot.user.id_tg))
-        text += oname + "!"
+        msgb.text_mention(oname, opponent.id_tg).text("!")
 
-    ok, msg = bot.sendMessage(text)
+    ok, msg = bot.sendMessage(msgb)
     if not ok:
         return "Error!"
     game = TicTacToe.new_by_message(bot.user, msg, bot.user.id, opponent.id if opponent else None)
     bot.logger.info(f"created {game.id} by uid={bot.user.id} ({bot.user.get_username()})")
 
-    tgapi.editMessageText(msg.chat.id, msg.message_id, text, reply_markup=tgapi.InlineKeyboardMarkup(inline_keyboard=[[
-        IKB.callback("⚔ Принять вызов!", f"tic_tac_toe_join {game.id}"),
-    ]]), entities=entities)
+    tgapi.editMessageReplyMarkup(msg.chat.id, msg.message_id, reply_markup=tgapi.reply_markup([
+        ("⚔ Принять вызов!", f"tic_tac_toe_join {game.id}"),
+    ]))
 
 
-@Bot.add_command("tic_tac_toe_join")
-@Bot.cmd_connect_db
+@Bot.add_command()
 def tic_tac_toe_join(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    assert bot.user
-    game, err = get_game(bot, args)
-    if err:
-        return err
-    assert game
-
+    game = get_game(bot, args)
     if game.player2_id != None:
         if bot.user.id != game.player2_id:
             return "Вызвали на дуэль не вас!"
@@ -65,16 +51,9 @@ def tic_tac_toe_join(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     update_msg(game)
 
 
-@Bot.add_command("tic_tac_toe_turn")
-@Bot.cmd_connect_db
+@Bot.add_command()
 def tic_tac_toe_turn(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    assert bot.user
-    assert bot.db_sess
-    game, err = get_game(bot, args)
-    if err:
-        return err
-    assert game
-
+    game = get_game(bot, args)
     if len(args) < 3:
         return "No coords provided"
     x = parse_int(args[1])
@@ -118,53 +97,45 @@ def tic_tac_toe_turn(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
 
 
 def get_game(bot: Bot, args: tgapi.BotCmdArgs):
-    assert bot.db_sess
     if len(args) < 1:
-        return None, "No game id provided"
+        tgapi.raiseBotAnswer("No game id provided")
 
     id = parse_int(args[0])
     if id is None:
-        return None, "id is NaN"
+        tgapi.raiseBotAnswer("id is NaN")
 
     game = TicTacToe.get(bot.db_sess, id, for_update=True)
     if game is None:
-        return None, f"game with id={id} doesnt exist"
+        tgapi.raiseBotAnswer(f"game with id={id} doesnt exist")
 
-    return game, None
+    return game
 
 
 def update_msg(game: TicTacToe):
     assert game.player2
     player1_piece = get_player_piece(game.player1.id_tg, True)
     player2_piece = get_player_piece(game.player2.id_tg, False)
-    p1name = player1_piece + " " + game.player1.get_username()
-    p2name = player2_piece + " " + game.player2.get_username()
-    entities = []
-    text = "👾 Крестики-нолики\n"
-    entities.append(ME.bold(0, ME.len(text)))
-    entities.append(ME.text_mention(ME.len(text), ME.len(p1name), game.player1.id_tg))
-    text += p1name
-    text += " против "
-    entities.append(ME.text_mention(ME.len(text), ME.len(p2name), game.player2.id_tg))
-    text += p2name
-    text += "\n"
+    msg = tgapi.build_msg().bold("👾 Крестики-нолики\n")
+    msg.text_mention(player1_piece + " " + game.player1.get_username(), game.player1.id_tg)
+    msg.text(" против ")
+    msg.text_mention(player2_piece + " " + game.player2.get_username(), game.player2.id_tg)
+    msg.text("\n")
 
     status, player_i = game.get_status()
     player = game.player1 if player_i == 1 else game.player2
     player_piece = player1_piece if player_i == 1 else player2_piece
     pname = player_piece + " " + player.get_username()
     if status == "turn":
-        text += "⚔ Ходит "
-        entities.append(ME.text_mention(ME.len(text), ME.len(pname), player.id_tg))
-        text += pname
+        msg.text("⚔ Ходит ")
+        msg.text_mention(pname, player.id_tg)
     elif status == "draw":
-        text += "🥳 Ничья!"
+        msg.text("🥳 Ничья!")
     else:
-        text += "🥳 Победа за "
-        entities.append(ME.text_mention(ME.len(text), ME.len(pname), player.id_tg))
-        text += pname + "!"
+        msg.text("🥳 Победа за ")
+        msg.text_mention(pname, player.id_tg)
+        msg.text("!")
 
-    btns = [[] for _ in range(3)]
+    btns: list[list[tuple[str, str]]] = [[] for _ in range(3)]
     for i, ch in enumerate(game.field):
         x = i % 3
         y = i // 3
@@ -178,10 +149,11 @@ def update_msg(game: TicTacToe):
                 txt = "⏹"
             else:
                 txt = "⏺"
-        btns[y].append(IKB.callback(txt, f"tic_tac_toe_turn {game.id} {x} {y}"))
+        btns[y].append((txt, f"tic_tac_toe_turn {game.id} {x} {y}"))
 
+    text, entities = msg.build()
     tgapi.editMessageText(game.msg.chat_id, game.msg.message_id, text,
-                          reply_markup=tgapi.InlineKeyboardMarkup(inline_keyboard=btns), entities=entities)
+                          reply_markup=tgapi.reply_markup(*btns), entities=entities)
 
 
 def get_player_piece(id: int, cross: bool):

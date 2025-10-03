@@ -16,8 +16,7 @@ class Screamer(SqlAlchemyBase, IdMixin):
 
     @staticmethod
     def new(creator: User, cmd: str, text: str):
-        db_sess = Session.object_session(creator)
-        assert db_sess
+        db_sess = creator.db_sess
         msg = Screamer(cmd=cmd, text=text)
 
         db_sess.add(msg)

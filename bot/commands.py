@@ -9,14 +9,9 @@ from data.misc import Misc
 from data.screamer import Screamer
 from data.tagger import Tagger
 
-ME = tgapi.MessageEntity
-
 
 @Bot.add_command("goida_<txt>", desc=("Кричалка", "[new_text] [\\s]"))
-@Bot.cmd_connect_db
 def goida(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
-    assert bot.user
-    assert bot.db_sess
     sl = False
     if args.raw_args != "" and args.raw_args[-2:] == "\\s":
         silent_mode_on(bot)
@@ -37,15 +32,11 @@ def goida(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
         if sl:
             return None
     text = s.text if s else txt.replace("_", " ")
-    bot.sendMessage(t + text, entities=[
-        ME.blockquote(ME.len(t), ME.len(text)),
-    ])
+    return tgapi.build_msg(t).blockquote(text).build()
 
 
 @Bot.add_command("q", desc=("Цитата", "<Author>\\n<text>"))
-@Bot.cmd_connect_db
 def quote(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    assert bot.user
     if args.raw_args == "":
         return "📖 Для отправки цитаты напишите: \n/q Имя автора\nТекст цитаты с новой строки"
     if bot.message:
@@ -54,14 +45,10 @@ def quote(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     author = "\n©" + parts[0] + "\n"
     user = "by " + bot.user.get_name()
     text = "\n".join(parts[1:])
-    bot.sendMessage(text + author + user, entities=[
-        ME.blockquote(0, ME.len(text)),
-        ME.spoiler(ME.len(text + author), ME.len(user)),
-    ])
+    return tgapi.build_msg().blockquote(text).text(author).spoiler(user).build()
 
 
 @Bot.add_command("all<txt>_set", desc="Настроить список для вызова всех")
-@Bot.cmd_connect_db
 @Bot.cmd_for_admin
 def all_set(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
     if not bot.message:
@@ -77,9 +64,7 @@ def all_set(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
 
 
 @Bot.add_command("all<txt>", desc="Вызвать всех!")
-@Bot.cmd_connect_db
 def all(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
-    assert bot.db_sess
     if not bot.message or not bot.chat:
         return "Call by message"
     silent_mode(bot, args)
@@ -88,18 +73,18 @@ def all(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
     users.sort(key=lambda u: u.user.get_tagname() + u.user.get_username())
 
     if len(users) == 0:
-        bot.sendMessage(f"Список пуст\nсоздайте его командой: /all{txt}_set")
-        return
+        return f"Список пуст\nсоздайте его командой: /all{txt}_set"
 
-    text = "🔔 "
-    entities = []
+    msg = tgapi.build_msg("🔔 ")
     full_names = False
     if full_names:
         for u in users:
             utext = u.user.get_tagname()
             if u.user.username == "":
-                entities.append(ME.text_mention(ME.len(text), ME.len(utext), u.user.id_tg))
-            text += utext + " "
+                msg.text_mention(utext, u.user.id_tg)
+            else:
+                msg.text(utext)
+            msg.text(" ")
     else:
         phrase = choice([
             "Придите же люди добрые, на клич бодрый!",
@@ -120,16 +105,13 @@ def all(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
             r = 1 if rem > 0 else 0
             rem -= 1
             utext, phrase = phrase[:c + r], phrase[c + r:]
-            entities.append(ME.text_mention(ME.len(text), ME.len(utext), u.user.id_tg))
-            text += utext
+            msg.text_mention(utext, u.user.id_tg)
 
-    bot.sendMessage(text, entities=entities)
+    return msg.build()
 
 
-@Bot.add_command("say")
-@Bot.cmd_connect_db
+@Bot.add_command()
 def say(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    assert bot.user
     if not bot.user.is_admin():
         return
     if bot.message:
@@ -140,32 +122,24 @@ def say(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     return args.raw_args
 
 
-@Bot.add_command("os418_say")
-@Bot.cmd_connect_db
+@Bot.add_command()
 def os418_say(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    assert bot.db_sess
-    assert bot.user
-    if not bot.user.is_admin():
+    if not bot.user.is_admin() or not bot.message:
         return
-    if bot.message:
-        tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
-        if args.raw_args == "":
-            return
-        misc = Misc.get(bot.db_sess)
-        bot.sendMessage(args.raw_args, chat_id=misc.os418_chat_id, message_thread_id=misc.os418_chat_thread_id, entities=bot.message.entities)
+    tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
+    if args.raw_args == "":
+        return
+    misc = Misc.get(bot.db_sess)
+    bot.sendMessage(args.raw_args, chat_id=misc.os418_chat_id, message_thread_id=misc.os418_chat_thread_id, entities=bot.message.entities)
 
 
-@Bot.add_command("os418_set")
-@Bot.cmd_connect_db
+@Bot.add_command()
 def os418_set(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    assert bot.db_sess
-    assert bot.user
-    if not bot.user.is_admin():
+    if not bot.user.is_admin() or not bot.message:
         return
-    if bot.message:
-        tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
-        misc = Misc.get(bot.db_sess)
-        misc.os418_chat_id = bot.message.chat.id
-        misc.os418_chat_thread_id = Undefined.default(bot.message.message_thread_id)
-        bot.logger.info(f"os418_chat_id={misc.os418_chat_id} os418_chat_thread_id={misc.os418_chat_thread_id}")
-        bot.db_sess.commit()
+    tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
+    misc = Misc.get(bot.db_sess)
+    misc.os418_chat_id = bot.message.chat.id
+    misc.os418_chat_thread_id = Undefined.default(bot.message.message_thread_id)
+    bot.logger.info(f"os418_chat_id={misc.os418_chat_id} os418_chat_thread_id={misc.os418_chat_thread_id}")
+    bot.db_sess.commit()

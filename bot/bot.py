@@ -20,7 +20,7 @@ class Bot(tgapi.BotWithDB[User]):
         return user
 
 
-@Bot.add_command("help")
+@Bot.add_command()
 def help(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     def format_cmd(v: tuple[str, tgapi.Bot.tcmd_dsc]):
         cmd, desc = v

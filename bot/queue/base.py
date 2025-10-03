@@ -9,11 +9,9 @@ from data.queue_user import QueueUser
 from data.user import User
 
 
-@Bot.add_command("queue_new", desc_adm=("Создать новую очередь", "<name> [\\s]"))
-@Bot.cmd_connect_db
+@Bot.add_command(desc_adm=("Создать новую очередь", "<name> [\\s]"))
 @Bot.cmd_for_admin
 def queue_new(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    assert bot.user
     silent_mode(bot, args)
     if len(args) < 1:
         return "Укажите имя очереди\nUsage: /queue_new <name> [\\s]"
@@ -31,16 +29,9 @@ def queue_new(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     updateQueue(bot, queue)
 
 
-@Bot.add_command("queue_enter")
-@Bot.cmd_connect_db
+@Bot.add_command()
 def queue_enter(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    assert bot.user
-    assert bot.db_sess
-    queue, err = get_queue(bot, args)
-    if err:
-        return err
-    assert queue
-
+    queue = get_queue(bot, args)
     qu = QueueUser.get(bot.db_sess, queue.id, bot.user.id)
     if qu is not None:
         return "Уже в очереди"
@@ -51,16 +42,9 @@ def queue_enter(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     return "Вы встали в очередь"
 
 
-@Bot.add_command("queue_exit")
-@Bot.cmd_connect_db
+@Bot.add_command()
 def queue_exit(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    assert bot.user
-    assert bot.db_sess
-    queue, err = get_queue(bot, args)
-    if err:
-        return err
-    assert queue
-
+    queue = get_queue(bot, args)
     qu = QueueUser.get(bot.db_sess, queue.id, bot.user.id)
     if qu is None:
         return "Уже не в очереди"
@@ -71,16 +55,9 @@ def queue_exit(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     return "Вы вышли из очереди"
 
 
-@Bot.add_command("queue_pass")
-@Bot.cmd_connect_db
+@Bot.add_command()
 def queue_pass(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    assert bot.user
-    assert bot.db_sess
-    queue, err = get_queue(bot, args)
-    if err:
-        return err
-    assert queue
-
+    queue = get_queue(bot, args)
     qus = list(QueueUser.all_in_queue(bot.db_sess, queue.id))
     uid = bot.user.id
     qu = listfind(qus, lambda x: x.user_id == uid)
@@ -100,16 +77,9 @@ def queue_pass(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     return "Вы пропустили одного"
 
 
-@Bot.add_command("queue_end")
-@Bot.cmd_connect_db
+@Bot.add_command()
 def queue_end(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    assert bot.user
-    assert bot.db_sess
-    queue, err = get_queue(bot, args)
-    if err:
-        return err
-    assert queue
-
+    queue = get_queue(bot, args)
     bot.logger.info(f"qid={queue.id} uid={bot.user.id} ({bot.user.get_username()})")
     qu = QueueUser.get(bot.db_sess, queue.id, bot.user.id)
     with update_queue_msg_if_changes(bot, queue):
@@ -121,21 +91,14 @@ def queue_end(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     return "Вы встали в конец"
 
 
-@Bot.add_command("queue_add", desc=("Добавить в очередь", "<username> [\\s]"))
-@Bot.cmd_connect_db
+@Bot.add_command(desc=("Добавить в очередь", "<username> [\\s]"))
 def queue_add(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    assert bot.user
-    assert bot.db_sess
     s = silent_mode(bot, args)
 
     if len(args) < 1:
         return "Укажите кого добавить в очередь\nUsage: /queue_add <username> [\\s]"
 
-    queue, err = get_queue_by_reply(bot)
-    if err:
-        return err
-    assert queue
-
+    queue = get_queue_by_reply(bot)
     username = args[0]
     user = User.get_by_username(bot.db_sess, username)
 

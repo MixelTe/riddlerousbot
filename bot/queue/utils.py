@@ -17,8 +17,6 @@ class updateQueueLoudness:
 
 
 def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
-    assert bot.user
-    assert bot.db_sess
     if loudness >= updateQueueLoudness.scream:
         tgapi.deleteMessage(queue.msg.chat_id, queue.msg.message_id)
         ok, r = bot.sendMessage(f"📝 Очередь {queue.name}:\n⏳ Обновление...")
@@ -50,18 +48,18 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
             else:
                 txt_next = f"🎞 Следующий в очереди {queue.name}\n🥇-> {qus[0].user.get_tagname()}"
 
-            btns = []
+            btns: list[tuple[str, str]] = []
             if len(qus) > 1:
-                btns.append(tgapi.InlineKeyboardButton.callback("🎭 Пропуск", f"queue_pass {queue.id}"))
-            btns.append(tgapi.InlineKeyboardButton.callback("🔴 Выйти", f"queue_exit {queue.id}"))
+                btns.append(("🎭 Пропуск", f"queue_pass {queue.id}"))
+            btns.append(("🔴 Выйти", f"queue_exit {queue.id}"))
             if len(qus) > 2:
-                btns.append(tgapi.InlineKeyboardButton.callback("💫 В конец", f"queue_end {queue.id}"))
+                btns.append(("💫 В конец", f"queue_end {queue.id}"))
 
             if loudness >= updateQueueLoudness.loud:
                 if queue.msg_next is not None:
                     tgapi.deleteMessage(queue.msg_next.chat_id, queue.msg_next.message_id)
                 ok, r = bot.sendMessage(txt_next,
-                                        reply_markup=tgapi.InlineKeyboardMarkup(inline_keyboard=[btns]),
+                                        reply_markup=tgapi.reply_markup(btns),
                                         message_thread_id=queue.msg.message_thread_id,
                                         reply_parameters=tgapi.ReplyParameters(message_id=queue.msg.message_id))
                 if not ok:
@@ -70,40 +68,38 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
             else:
                 if queue.msg_next is not None:
                     tgapi.editMessageText(queue.msg_next.chat_id, queue.msg_next.message_id,
-                                          txt_next, reply_markup=tgapi.InlineKeyboardMarkup(inline_keyboard=[btns]))
+                                          txt_next, reply_markup=tgapi.reply_markup(btns))
 
-    tgapi.editMessageText(queue.msg.chat_id, queue.msg.message_id, txt, reply_markup=tgapi.InlineKeyboardMarkup(inline_keyboard=[[
-        tgapi.InlineKeyboardButton.callback("🟢 Встать", f"queue_enter {queue.id}"),
-        tgapi.InlineKeyboardButton.callback("🔴 Выйти", f"queue_exit {queue.id}"),
-    ]]))
+    tgapi.editMessageText(queue.msg.chat_id, queue.msg.message_id, txt, reply_markup=tgapi.reply_markup([
+        ("🟢 Встать", f"queue_enter {queue.id}"),
+        ("🔴 Выйти", f"queue_exit {queue.id}"),
+    ]))
 
 
-def get_queue(bot: Bot, args: tgapi.BotCmdArgs) -> tuple[None, str] | tuple[Queue, None]:
-    assert bot.db_sess
+def get_queue(bot: Bot, args: tgapi.BotCmdArgs) -> Queue:
     if len(args) < 1:
-        return None, "No queue id provided"
+        tgapi.raiseBotAnswer("No queue id provided")
 
     id = parse_int(args[0])
     if id is None:
-        return None, "id is NaN"
+        tgapi.raiseBotAnswer("id is NaN")
 
     queue = Queue.get(bot.db_sess, id)
     if queue is None:
-        return None, f"queue with id={id} doesnt exist"
+        tgapi.raiseBotAnswer(f"queue with id={id} doesnt exist")
 
-    return queue, None
+    return queue
 
 
 def get_queue_by_reply(bot: Bot):
-    assert bot.db_sess
     if not bot.message or not Undefined.defined(bot.message.reply_to_message):
-        return None, "Укажите очередь, ответив на неё"
+        tgapi.raiseBotAnswer("Укажите очередь, ответив на неё")
 
     queue = Queue.get_by_message(bot.db_sess, bot.message.reply_to_message)
     if not queue:
-        return None, "Необходимо ответить на сообщение очереди (это не оно, или оно уже не действительно)"
+        tgapi.raiseBotAnswer("Необходимо ответить на сообщение очереди (это не оно, или оно уже не действительно)")
 
-    return queue, None
+    return queue
 
 
 class update_queue_msg_if_changes():
@@ -112,13 +108,11 @@ class update_queue_msg_if_changes():
         self.queue = queue
 
     def __enter__(self):
-        assert self.bot.db_sess
         self.first, self.second = QueueUser.first2_in_queue(self.bot.db_sess, self.queue.id)
         self.count = QueueUser.count_in_queue(self.bot.db_sess, self.queue.id)
         return self
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
-        assert self.bot.db_sess
         first, second = QueueUser.first2_in_queue(self.bot.db_sess, self.queue.id)
         count = QueueUser.count_in_queue(self.bot.db_sess, self.queue.id)
         big_changes = False

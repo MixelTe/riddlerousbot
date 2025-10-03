@@ -24,8 +24,7 @@ class Queue(SqlAlchemyBase, IdMixin):
 
     @staticmethod
     def new(creator: User, msg_id: int, name: str):
-        db_sess = Session.object_session(creator)
-        assert db_sess
+        db_sess = creator.db_sess
         queue = Queue(msg_id=msg_id, name=name)
 
         db_sess.add(queue)
