@@ -2,6 +2,7 @@ from bafser import TablesBase
 
 
 class Tables(TablesBase):
+    Checker = "Checker"
     Misc = "Misc"
     Msg = "Msg"
     Queue = "Queue"

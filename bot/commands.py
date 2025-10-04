@@ -5,9 +5,27 @@ from bafser import Undefined
 
 from bot.bot import Bot
 from bot.utils import get_users_from_msg, silent_mode, silent_mode_on
+from data.checker import Checker
 from data.misc import Misc
+from data.msg import Msg
 from data.screamer import Screamer
 from data.tagger import Tagger
+from data.user import User
+
+
+@Bot.add_command()
+def start(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    for chk in Checker.all_by_user(bot.user):
+        users = Tagger.get_all_by_cmd_in_chat(bot.db_sess, chk.cmd, chk.msg.chat_id)
+        users.sort(key=lambda u: u.user.get_tagname() + u.user.get_username())
+        msg, nof_users, reply_markup = all_check_msg(users)
+        text, entities = msg.build()
+        if len(nof_users) == 0:
+            tgapi.editMessageText(chk.msg.chat_id, chk.msg.message_id, "🔔 Все познакомились с ботом лично!")
+        else:
+            tgapi.editMessageText(chk.msg.chat_id, chk.msg.message_id, text, entities=entities, reply_markup=reply_markup)
+        chk.delete(bot.user)
+    return "Приятно познакомиться"
 
 
 @Bot.add_command("goida_<txt>", desc=("Кричалка", "[new_text] [\\s]"))
@@ -61,6 +79,52 @@ def all_set(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
     Tagger.update_cmd_in_chat(bot, txt, users)
     if not sl:
         return f"✏ Изменён список команды /all{txt}\n" + "\n".join([user.get_name() for user in users])
+
+
+@Bot.add_command("all<txt>_check", desc="Проверить, всех ли может тегать бот")
+@Bot.cmd_for_admin
+def all_check(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
+    if not bot.message or not bot.chat:
+        return "Call by message"
+    sl = silent_mode(bot, args)
+
+    users = Tagger.get_all_by_cmd_in_chat(bot.db_sess, txt, bot.chat.id)
+    users.sort(key=lambda u: u.user.get_tagname() + u.user.get_username())
+
+    if len(users) == 0:
+        return f"Список пуст\nсоздайте его командой: /all{txt}_set"
+
+    msg, nof_users, reply_markup = all_check_msg(users)
+    if len(nof_users) == 0:
+        if sl:
+            return
+        return "Всех можно тегать!"
+
+    ok, msg = bot.sendMessage(msg, reply_markup=reply_markup)
+    if not ok:
+        return "Error!"
+    msg = Msg.new_from_data(bot.user, msg)
+    for user in nof_users:
+        Checker.new(user, msg, user, cmd=txt, commit=False)
+    bot.db_sess.commit()
+
+
+def all_check_msg(users: list[Tagger]):
+    msg = tgapi.build_msg("🔔 Для корректной работы команды /all, просим вас нажать на кнопку:\n")
+    nof_users: list[User] = []
+    for u in users:
+        if not u.user.is_friendly:
+            nof_users.append(u.user)
+            utext = u.user.get_tagname()
+            if u.user.username == "":
+                msg.text_mention(utext, u.user.id_tg)
+            else:
+                msg.text(utext)
+            msg.text(" ")
+    reply_markup = tgapi.reply_markup([
+        tgapi.InlineKeyboardButton.open_url("Тык!", f"https://t.me/{tgapi.get_bot_name()[1:]}?start=checker")
+    ])
+    return msg, nof_users, reply_markup
 
 
 @Bot.add_command("all<txt>", desc="Вызвать всех!")
@@ -130,7 +194,7 @@ def os418_say(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     if args.raw_args == "":
         return
     misc = Misc.get(bot.db_sess)
-    bot.sendMessage(args.raw_args, chat_id=misc.os418_chat_id, message_thread_id=misc.os418_chat_thread_id, entities=bot.message.entities)
+    bot.sendMessage(args.raw_args, chat_id=misc.os418_chat_id, message_thread_id=misc.os418_chat_thread_id)
 
 
 @Bot.add_command()
@@ -143,3 +207,25 @@ def os418_set(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     misc.os418_chat_thread_id = Undefined.default(bot.message.message_thread_id)
     bot.logger.info(f"os418_chat_id={misc.os418_chat_id} os418_chat_thread_id={misc.os418_chat_thread_id}")
     bot.db_sess.commit()
+
+
+@Bot.add_command()
+def os418(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    if not bot.message:
+        return
+    misc = Misc.get(bot.db_sess)
+    if (bot.message.chat.id != misc.os418_chat_id and
+            Undefined.default(bot.message.message_thread_id) != misc.os418_chat_thread_id):
+        tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
+        return
+    msg = args.raw_args.strip()
+    if msg == "":
+        return "✨ Звёзды обратили внимание на безмолвный крик"
+    adm = User.get_by_username(bot.db_sess, "MixelTe")
+    if not adm:
+        return
+    ok, msg = tgapi.forwardMessage(adm.id_tg, None, bot.message.chat.id, bot.message.message_id)
+    if not ok:
+        return
+    msg_orig = Msg.new_from_data(bot.user, bot.message)
+    Msg.new_from_data(bot.user, msg, msg_orig.id)
