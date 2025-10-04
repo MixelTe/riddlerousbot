@@ -16,11 +16,9 @@ def on_message(bot: Bot):
     if not Undefined.defined(bot.message.reply_to_message):
         return
     msg = Msg.get_by_message_id(bot.db_sess, bot.message.reply_to_message.message_id)
-    if not msg or not msg.reply_to_id:
+    if not msg or not msg.reply_to:
         return
-    msg = Msg.get(bot.db_sess, msg.reply_to_id)
-    if not msg:
-        return
+    msg = msg.reply_to
     tgapi.copyMessage(msg.chat_id, msg.message_thread_id,
                       bot.message.chat.id, bot.message.message_id,
                       reply_parameters=tgapi.ReplyParameters(message_id=msg.message_id))

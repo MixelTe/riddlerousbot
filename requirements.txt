@@ -1,1 +1,1 @@
-bafser-tgapi==1.5.1
+bafser-tgapi==1.6.0
