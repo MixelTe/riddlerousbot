@@ -1,12 +1,10 @@
 from random import choice
 
 import bafser_tgapi as tgapi
-from bafser import Undefined
 
 from bot.bot import Bot
 from bot.utils import get_users_from_msg, silent_mode, silent_mode_on
 from data.checker import Checker
-from data.misc import Misc
 from data.msg import Msg
 from data.screamer import Screamer
 from data.tagger import Tagger
@@ -184,48 +182,3 @@ def say(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
         return
 
     return args.raw_args
-
-
-@Bot.add_command()
-def os418_say(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    if not bot.user.is_admin() or not bot.message:
-        return
-    tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
-    if args.raw_args == "":
-        return
-    misc = Misc.get(bot.db_sess)
-    bot.sendMessage(args.raw_args, chat_id=misc.os418_chat_id, message_thread_id=misc.os418_chat_thread_id)
-
-
-@Bot.add_command()
-def os418_set(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    if not bot.user.is_admin() or not bot.message:
-        return
-    tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
-    misc = Misc.get(bot.db_sess)
-    misc.os418_chat_id = bot.message.chat.id
-    misc.os418_chat_thread_id = Undefined.default(bot.message.message_thread_id)
-    bot.logger.info(f"os418_chat_id={misc.os418_chat_id} os418_chat_thread_id={misc.os418_chat_thread_id}")
-    bot.db_sess.commit()
-
-
-@Bot.add_command()
-def os418(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
-    if not bot.message:
-        return
-    misc = Misc.get(bot.db_sess)
-    if (bot.message.chat.id != misc.os418_chat_id and
-            Undefined.default(bot.message.message_thread_id) != misc.os418_chat_thread_id):
-        tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)
-        return
-    msg = args.raw_args.strip()
-    if msg == "":
-        return "✨ Звёзды обратили внимание на безмолвный крик"
-    adm = User.get_by_username(bot.db_sess, "MixelTe")
-    if not adm:
-        return
-    ok, msg = tgapi.forwardMessage(adm.id_tg, None, bot.message.chat.id, bot.message.message_id)
-    if not ok:
-        return
-    msg_orig = Msg.new_from_data(bot.user, bot.message)
-    Msg.new_from_data(bot.user, msg, msg_orig.id)
