@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import bafser_tgapi as tgapi
-from bafser import IdMixin, SqlAlchemyBase
+from bafser import IdMixin, SqlAlchemyBase, get_db_session
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -25,8 +25,8 @@ class Transaction(SqlAlchemyBase, IdMixin):
     user_to: Mapped[User] = relationship(foreign_keys=[to_id], init=False)
 
     @staticmethod
-    def new(creator: User, user_from: User, user_to: User, value: int):
-        db_sess = creator.db_sess
+    def new(user_from: User, user_to: User, value: int):
+        db_sess = get_db_session()
         trn = Transaction(from_id=user_from.id, to_id=user_to.id, value=value)
 
         user_from.coins -= value

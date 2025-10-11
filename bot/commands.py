@@ -14,7 +14,7 @@ from data.user import User
 @Bot.add_command()
 def start(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     for chk in Checker.all_by_user(bot.user):
-        users = Tagger.get_all_by_cmd_in_chat(bot.db_sess, chk.cmd, chk.msg.chat_id)
+        users = Tagger.get_all_by_cmd_in_chat(chk.cmd, chk.msg.chat_id)
         users.sort(key=lambda u: u.user.get_tagname() + u.user.get_username())
         msg, nof_users, reply_markup = all_check_msg(users)
         text, entities = msg.build()
@@ -22,7 +22,7 @@ def start(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
             tgapi.editMessageText(chk.msg.chat_id, chk.msg.message_id, "🔔 Все познакомились с ботом лично!")
         else:
             tgapi.editMessageText(chk.msg.chat_id, chk.msg.message_id, text, entities=entities, reply_markup=reply_markup)
-        chk.delete(bot.user)
+        chk.delete()
     return "Приятно познакомиться"
 
 
@@ -36,14 +36,14 @@ def goida(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
     t = "🤟 " + bot.user.get_name() + " 🤟\n"
     if not txt:
         return t + "Тыц-тыц!"
-    s = Screamer.get_by_cmd(bot.db_sess, txt)
+    s = Screamer.get_by_cmd(txt)
     if args.raw_args != "":
         if args.raw_args == "txt":
             return None
         if s:
-            s.update_text(bot.user, args.raw_args)
+            s.update_text(args.raw_args)
         else:
-            s = Screamer.new(bot.user, txt, args.raw_args)
+            s = Screamer.new(txt, args.raw_args)
         bot.logger.info(f"uid={bot.user.id} ({bot.user.get_username()}) upd cmd {txt}")
         if sl:
             return None
@@ -86,7 +86,7 @@ def all_check(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
         return "Call by message"
     sl = silent_mode(bot, args)
 
-    users = Tagger.get_all_by_cmd_in_chat(bot.db_sess, txt, bot.chat.id)
+    users = Tagger.get_all_by_cmd_in_chat(txt, bot.chat.id)
     users.sort(key=lambda u: u.user.get_tagname() + u.user.get_username())
 
     if len(users) == 0:
@@ -103,7 +103,7 @@ def all_check(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
         return "Error!"
     msg = Msg.new_from_data(bot.user, msg)
     for user in nof_users:
-        Checker.new(user, msg, user, cmd=txt, commit=False)
+        Checker.new(msg, user, cmd=txt, commit=False)
     bot.db_sess.commit()
 
 
@@ -131,7 +131,7 @@ def all(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
         return "Call by message"
     silent_mode(bot, args)
 
-    users = Tagger.get_all_by_cmd_in_chat(bot.db_sess, txt, bot.chat.id)
+    users = Tagger.get_all_by_cmd_in_chat(txt, bot.chat.id)
     users.sort(key=lambda u: u.user.get_tagname() + u.user.get_username())
 
     if len(users) == 0:

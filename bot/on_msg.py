@@ -64,7 +64,7 @@ def os418_curse(bot: Bot):
         return
     now = get_datetime_now().replace(tzinfo=None)
     if curse.end_date < now:
-        curse.delete(bot.user)
+        curse.delete()
         return
 
     tgapi.deleteMessage(bot.message.chat.id, bot.message.message_id)

@@ -23,7 +23,7 @@ def queue_rename(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
 
     old_name = queue.name
     name = " ".join(args)
-    queue.update_name(bot.user, name)
+    queue.update_name(name)
 
     bot.logger.info(f"qid={queue.id} (\"{old_name}\" -> \"{name}\")")
     updateQueue(bot, queue, updateQueueLoudness.quiet)
@@ -37,7 +37,7 @@ def queue_clear(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     s = silent_mode(bot, args)
     queue = get_queue_by_reply(bot)
 
-    QueueUser.delete_all_in_queue(bot.user, queue.id)
+    QueueUser.delete_all_in_queue(queue.id)
 
     bot.logger.info(f"qid={queue.id}")
     updateQueue(bot, queue)
@@ -68,9 +68,9 @@ def queue_kick(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     uq = None
     if num is None:
         username = args[0]
-        uq = QueueUser.get_by_username(bot.db_sess, queue.id, username)
+        uq = QueueUser.get_by_username(queue.id, username)
     elif num - 1 >= 0:
-        uq = QueueUser.get_by_order(bot.db_sess, queue.id, num - 1)
+        uq = QueueUser.get_by_order(queue.id, num - 1)
 
     if uq is None:
         return "Человек не найден в очереди\nUsage: /queue_kick <username> [\\s]\n/queue_kick <number> [\\s]"
@@ -86,7 +86,7 @@ def queue_kick(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
 
     bot.logger.info(f"qid={queue.id} uid={user.id} ({user.get_username()})")
     with update_queue_msg_if_changes(bot, queue):
-        uq.delete(bot.user)
+        uq.delete()
 
     if not s:
         return f"🔴 {user.get_tagname()} теперь не в очереди {queue.name}"
@@ -119,14 +119,14 @@ def queue_kick_cmd(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     if queue is None:
         return "queue not found"
 
-    uq = QueueUser.get_by_user_id(bot.db_sess, queue.id, user_id)
+    uq = QueueUser.get_by_user_id(queue.id, user_id)
     if uq is None:
         return "user not found in queue"
 
     user = uq.user
     bot.logger.info(f"qid={queue.id} uid={user.id} ({user.get_username()})")
     with update_queue_msg_if_changes(bot, queue):
-        uq.delete(bot.user)
+        uq.delete()
 
     if not s:
         return f"🔴 {user.get_tagname()} теперь не в очереди {queue.name}"
@@ -152,10 +152,10 @@ def queue_add_to(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
         return "👻 Этот пользователь не знаком боту (если в имени ошибки нет, пускай он хотя бы раз повзаимодействует с ботом)"
 
     with update_queue_msg_if_changes(bot, queue):
-        qus = QueueUser.all_in_queue(bot.db_sess, queue.id)
+        qus = QueueUser.all_in_queue(queue.id)
         qu = listfind(qus, lambda x: x.user_id == user.id)
         if qu is None:
-            qu = QueueUser.new(bot.user, queue.id, user.id)
+            qu = QueueUser.new(queue.id, user.id)
             qus.append(qu)
         qui = qus.index(qu)
 
@@ -164,13 +164,13 @@ def queue_add_to(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
                 if qui >= len(qus) - 1:
                     break
                 qus[qui], qus[qui + 1] = qus[qui + 1], qus[qui]
-                QueueUser.swap_enter_date(bot.user, qus[qui], qus[qui + 1], commit=False)
+                QueueUser.swap_enter_date(qus[qui], qus[qui + 1], commit=False)
                 qui += 1
             elif qui > pos:
                 if qui <= 0:
                     break
                 qus[qui], qus[qui - 1] = qus[qui - 1], qus[qui]
-                QueueUser.swap_enter_date(bot.user, qus[qui], qus[qui - 1], commit=False)
+                QueueUser.swap_enter_date(qus[qui], qus[qui - 1], commit=False)
                 qui -= 1
             else:
                 break
@@ -195,10 +195,10 @@ def queue_set(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
         return
 
     bot.logger.info(f"qid={queue.id} [{'; '.join(f'{u.id} ({u.get_username()})' for u in users)}]")
-    QueueUser.delete_all_in_queue(bot.user, queue.id)
+    QueueUser.delete_all_in_queue(queue.id)
     now = get_datetime_now() - timedelta(seconds=len(users))
     for i, user in enumerate(users):
-        qu = QueueUser.new(bot.user, queue.id, user.id, commit=False)
+        qu = QueueUser.new(queue.id, user.id, commit=False)
         qu.enter_date = now + timedelta(seconds=i)
 
     bot.db_sess.commit()

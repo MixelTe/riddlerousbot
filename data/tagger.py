@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bafser import IdMixin, Log, SqlAlchemyBase
+from bafser import IdMixin, Log, SqlAlchemyBase, get_db_session
 from sqlalchemy import BigInteger, ForeignKey, String
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
@@ -27,7 +27,7 @@ class Tagger(SqlAlchemyBase, IdMixin):
         users.sort(key=lambda u: u.name)
         assert bot.chat
         chat_id = bot.chat.id
-        Tagger.query_all_by_cmd_in_chat(bot.db_sess, cmd, chat_id).delete()
+        Tagger.query_all_by_cmd_in_chat(cmd, chat_id).delete()
         user_ids = []
         for user in users:
             user_ids.append(user.id)
@@ -40,19 +40,19 @@ class Tagger(SqlAlchemyBase, IdMixin):
         ])
 
     @staticmethod
-    def get_by_value(db_sess: Session, cmd: str, chat_id: int, user_id: int):
-        return (db_sess
+    def get_by_value(cmd: str, chat_id: int, user_id: int):
+        return (get_db_session()
                 .query(Tagger)
                 .filter((Tagger.chat_id == chat_id) & (Tagger.cmd == cmd) & (Tagger.user_id == user_id))
                 .first())
 
     @staticmethod
-    def get_all_by_cmd_in_chat(db_sess: Session, cmd: str, chat_id: int):
-        return Tagger.query_all_by_cmd_in_chat(db_sess, cmd, chat_id).all()
+    def get_all_by_cmd_in_chat(cmd: str, chat_id: int):
+        return Tagger.query_all_by_cmd_in_chat(cmd, chat_id).all()
 
     @staticmethod
-    def query_all_by_cmd_in_chat(db_sess: Session, cmd: str, chat_id: int):
-        return db_sess.query(Tagger).filter((Tagger.chat_id == chat_id) & (Tagger.cmd == cmd))
+    def query_all_by_cmd_in_chat(cmd: str, chat_id: int):
+        return get_db_session().query(Tagger).filter((Tagger.chat_id == chat_id) & (Tagger.cmd == cmd))
 
     class FakeForLog:
         __tablename__ = Tables.Tagger

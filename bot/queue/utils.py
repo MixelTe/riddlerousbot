@@ -23,17 +23,17 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
         if not ok:
             return "Error!"
 
-        queue.update_msg(bot.user, r)
+        queue.update_msg(r)
         tgapi.pinChatMessage(r.chat.id, r.message_id)
 
     txt = f"📝 Очередь {queue.name}:\n"
     txt += "-" * math.floor(len(txt) * 1.8) + "\n"
-    qus = QueueUser.all_in_queue(bot.db_sess, queue.id)
+    qus = QueueUser.all_in_queue(queue.id)
     if len(qus) == 0:
         txt += "Никого в очереди"
         if queue.msg_next is not None:
             tgapi.deleteMessage(queue.msg_next.chat_id, queue.msg_next.message_id)
-            queue.update_msg_next(bot.user, None)
+            queue.update_msg_next(None)
     else:
         for i, qu in enumerate(qus):
             txt += f"{i + 1}) {qu.user.get_tagname()}\n"
@@ -64,7 +64,7 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
                                         reply_parameters=tgapi.ReplyParameters(message_id=queue.msg.message_id))
                 if not ok:
                     return "Error!"
-                queue.update_msg_next(bot.user, r)
+                queue.update_msg_next(r)
             else:
                 if queue.msg_next is not None:
                     tgapi.editMessageText(queue.msg_next.chat_id, queue.msg_next.message_id,
@@ -95,7 +95,7 @@ def get_queue_by_reply(bot: Bot):
     if not bot.message or not Undefined.defined(bot.message.reply_to_message):
         tgapi.raiseBotAnswer("Укажите очередь, ответив на неё")
 
-    queue = Queue.get_by_message(bot.db_sess, bot.message.reply_to_message)
+    queue = Queue.get_by_message(bot.message.reply_to_message)
     if not queue:
         tgapi.raiseBotAnswer("Необходимо ответить на сообщение очереди (это не оно, или оно уже не действительно)")
 
@@ -108,13 +108,13 @@ class update_queue_msg_if_changes():
         self.queue = queue
 
     def __enter__(self):
-        self.first, self.second = QueueUser.first2_in_queue(self.bot.db_sess, self.queue.id)
-        self.count = QueueUser.count_in_queue(self.bot.db_sess, self.queue.id)
+        self.first, self.second = QueueUser.first2_in_queue(self.queue.id)
+        self.count = QueueUser.count_in_queue(self.queue.id)
         return self
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
-        first, second = QueueUser.first2_in_queue(self.bot.db_sess, self.queue.id)
-        count = QueueUser.count_in_queue(self.bot.db_sess, self.queue.id)
+        first, second = QueueUser.first2_in_queue(self.queue.id)
+        count = QueueUser.count_in_queue(self.queue.id)
         big_changes = False
         if self.first is not None and first is not None:
             if self.first.user_id != first.user_id:

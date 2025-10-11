@@ -74,8 +74,8 @@ def os418_curse(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     end_date = get_datetime_now() + duration
     curse = Curse.get_by_user(user)
     if curse:
-        curse.update_end_date(bot.user, end_date)
+        curse.update_end_date(end_date)
     else:
-        curse = Curse.new(bot.user, user, end_date)
+        curse = Curse.new(user, end_date)
 
     return f"Applied {curse.type} curse to {user.get_tagname()} until {end_date:%Y.%m.%d %H:%M:%S}"

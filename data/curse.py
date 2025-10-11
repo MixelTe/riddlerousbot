@@ -20,34 +20,23 @@ class Curse(SqlAlchemyBase, IdMixin):
     user: Mapped[User] = relationship(init=False)
 
     @staticmethod
-    def new(creator: User, user: User, end_date: datetime):
+    def new(user: User, end_date: datetime):
         curse = Curse(type="silence", user_id=user.id, end_date=end_date)
-
-        creator.db_sess.add(curse)
-        Log.added(curse, creator, [
-            ("type", "silence"),
-            ("user_id", user.id),
-            ("end_date", end_date.isoformat()),
-        ])
-
+        Log.added(curse)
         return curse
 
     @staticmethod
     def get_by_user(user: User):
         return user.db_sess.query(Curse).filter(Curse.user_id == user.id).first()
 
-    def update_end_date(self, actor: User, end_date: datetime):
-        old_end_date = self.end_date
+    def update_end_date(self, end_date: datetime):
         self.end_date = end_date
-        Log.updated(self, actor, [
-            ("end_date", old_end_date.isoformat(), end_date.isoformat()),
-        ])
+        Log.updated(self)
 
-    def delete(self, actor: User, commit=True):
-        db_sess = self.db_sess
-        db_sess.delete(self)
-        Log.deleted(self, actor, [
+    def delete(self, commit=True):
+        self.db_sess.delete(self)
+        Log.deleted(self, None, [
             ("type", self.type),
             ("user_id", self.user_id),
-            ("end_date", self.end_date.isoformat()),
+            ("end_date", self.end_date),
         ], commit=commit)

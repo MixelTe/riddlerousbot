@@ -30,7 +30,7 @@ def tic_tac_toe(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     ok, msg = bot.sendMessage(msgb)
     if not ok:
         return "Error!"
-    game = TicTacToe.new_by_message(bot.user, msg, bot.user.id, opponent.id if opponent else None)
+    game = TicTacToe.new_by_message(msg, bot.user.id, opponent.id if opponent else None)
     bot.logger.info(f"created {game.id} by uid={bot.user.id} ({bot.user.get_username()})")
 
     tgapi.editMessageReplyMarkup(msg.chat.id, msg.message_id, reply_markup=tgapi.reply_markup([
@@ -45,7 +45,7 @@ def tic_tac_toe_join(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
         if bot.user.id != game.player2_id:
             return "Вызвали на дуэль не вас!"
 
-    game.update_player2(bot.user, bot.user.id)
+    game.update_player2(bot.user.id)
     bot.logger.info(f"joined {game.id} by uid={bot.user.id} ({bot.user.get_username()})")
 
     update_msg(game)
@@ -87,7 +87,7 @@ def tic_tac_toe_turn(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
         winner = game.player1 if player_i == 1 else game.player2
         looser = game.player2 if player_i == 1 else game.player1
         if looser.coins >= GAME_WIN_VALUE:
-            trn = Transaction.new(bot.user, user_from=looser, user_to=winner, value=GAME_WIN_VALUE)
+            trn = Transaction.new(user_from=looser, user_to=winner, value=GAME_WIN_VALUE)
             trn.notify(bot, game.msg.message_id)
         bot.logger.info(f"win {game.id} by uid={player.id} ({player.get_username()})")
     elif status == "draw":

@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Optional, Union
 
 import bafser_tgapi as tgapi
-from bafser import IdMixin, Log, SqlAlchemyBase
+from bafser import IdMixin, Log, SqlAlchemyBase, get_db_session
 from sqlalchemy import ForeignKey, String
-from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from data._tables import Tables
 from data.msg import Msg
@@ -23,45 +23,34 @@ class Queue(SqlAlchemyBase, IdMixin):
     msg_next: Mapped[Optional[Msg]] = relationship(foreign_keys=[msg_next_id], init=False)
 
     @staticmethod
-    def new(creator: User, msg_id: int, name: str):
-        db_sess = creator.db_sess
+    def new(msg_id: int, name: str):
         queue = Queue(msg_id=msg_id, name=name)
-
-        db_sess.add(queue)
-        Log.added(queue, creator, [
-            ("msg_id", msg_id),
-            ("name", name),
-        ])
-
+        Log.added(queue)
         return queue
 
     @staticmethod
-    def new_by_message(creator: User, message: tgapi.Message, name: str):
-        msg = Msg.new_from_data(creator, message)
-        return Queue.new(creator, msg.id, name)
+    def new_by_message(message: tgapi.Message, name: str):
+        msg = Msg.new_from_data2(message)
+        return Queue.new(msg.id, name)
 
     @staticmethod
-    def get_by_message(db_sess: Session, message: tgapi.Message):
-        return (db_sess.query(Queue)
+    def get_by_message(message: tgapi.Message):
+        return (get_db_session().query(Queue)
                 .join(Msg, (Msg.id == Queue.msg_id) | (Msg.id == Queue.msg_next_id))
                 .where(Msg.message_id == message.message_id)
                 .first())
 
-    def update_name(self, actor: User, name: str):
-        old_name = self.name
+    def update_name(self, name: str):
         self.name = name
-        Log.updated(self, actor, [("name", old_name, name)])
+        Log.updated(self)
 
-    def update_msg(self, actor: User, message: tgapi.Message):
-        old_msg = self.msg
-        self.msg = Msg.new_from_data(actor, message)
-        old_msg.delete(actor, commit=False)
-        Log.updated(self, actor, [("msg_id", old_msg.id, self.msg.id)])
+    def update_msg(self, message: tgapi.Message):
+        self.msg.delete2(commit=False)
+        self.msg = Msg.new_from_data2(message)
+        Log.updated(self)
 
-    def update_msg_next(self, actor: User, message: Union[tgapi.Message, None]):
-        old_msg = self.msg_next
-        new_msg = None if message is None else Msg.new_from_data(actor, message)
-        self.msg_next = new_msg
-        if old_msg:
-            old_msg.delete(actor, commit=False)
-        Log.updated(self, actor, [("msg_next_id", None if old_msg is None else old_msg.id, None if new_msg is None else new_msg.id)])
+    def update_msg_next(self, message: Union[tgapi.Message, None]):
+        if self.msg_next:
+            self.msg_next.delete2(commit=False)
+        self.msg_next = None if message is None else Msg.new_from_data2(message)
+        Log.updated(self)

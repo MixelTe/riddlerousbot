@@ -20,26 +20,18 @@ class Checker(SqlAlchemyBase, IdMixin):
     user: Mapped[User] = relationship(init=False)
 
     @staticmethod
-    def new(creator: User, msg: Msg, user: User, cmd: str, commit: bool = True):
-        db_sess = creator.db_sess
+    def new(msg: Msg, user: User, cmd: str, commit: bool = True):
         chk = Checker(msg_id=msg.id, user_id=user.id, cmd=cmd)
-
-        db_sess.add(chk)
-        Log.added(msg, creator, [
-            ("msg_id", msg.id),
-            ("user_id", user.id),
-        ], commit=commit)
-
-        return msg
+        Log.added(chk, commit=commit)
+        return chk
 
     @staticmethod
     def all_by_user(user: User):
         return user.db_sess.query(Checker).filter(Checker.user_id == user.id).all()
 
-    def delete(self, actor: User, commit=True):
-        db_sess = self.db_sess
-        db_sess.delete(self)
-        Log.deleted(self, actor, [
+    def delete(self, commit=True):
+        self.db_sess.delete(self)
+        Log.deleted(self, None, [
             ("msg_id", self.msg_id),
             ("user_id", self.user_id),
         ], commit=commit)

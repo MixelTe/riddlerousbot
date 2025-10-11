@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Optional
 
 import bafser_tgapi as tgapi
-from bafser import IdMixin, Log, SqlAlchemyBase
+from bafser import IdMixin, Log, SqlAlchemyBase, get_db_session
 from sqlalchemy import ForeignKey, String
-from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from data._tables import Tables
 from data.msg import Msg
@@ -25,36 +25,27 @@ class TicTacToe(SqlAlchemyBase, IdMixin):
     player2: Mapped[Optional[User]] = relationship(foreign_keys=[player2_id], init=False)
 
     @staticmethod
-    def new(creator: User, msg_id: int, player1_id: int, player2_id: int | None = None):
-        db_sess = creator.db_sess
+    def new(msg_id: int, player1_id: int, player2_id: int | None = None):
         field = "0" * 9
         game = TicTacToe(msg_id=msg_id, player1_id=player1_id, player2_id=player2_id, field=field)
-
-        db_sess.add(game)
-        Log.added(game, creator, [
-            ("msg_id", msg_id),
-            ("player1_id", player1_id),
-            ("player2_id", player2_id),
-        ])
-
+        Log.added(game)
         return game
 
     @staticmethod
-    def new_by_message(creator: User, message: tgapi.Message, player1_id: int, player2_id: int | None = None):
-        msg = Msg.new_from_data(creator, message)
-        return TicTacToe.new(creator, msg.id, player1_id, player2_id)
+    def new_by_message(message: tgapi.Message, player1_id: int, player2_id: int | None = None):
+        msg = Msg.new_from_data2(message)
+        return TicTacToe.new(msg.id, player1_id, player2_id)
 
     @staticmethod
-    def get_by_message(db_sess: Session, message: tgapi.Message):
-        return (db_sess.query(TicTacToe)
+    def get_by_message(message: tgapi.Message):
+        return (get_db_session().query(TicTacToe)
                 .join(Msg, Msg.id == TicTacToe.msg_id)
                 .where(Msg.message_id == message.message_id)
                 .first())
 
-    def update_player2(self, actor: User, player2_id: int):
-        old_player2_id = self.player2_id
+    def update_player2(self, player2_id: int):
         self.player2_id = player2_id
-        Log.updated(self, actor, [("player2_id", old_player2_id, player2_id)])
+        Log.updated(self)
 
     def get_status(self):
         winner: int | None = None
