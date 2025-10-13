@@ -45,12 +45,14 @@ class Queue(SqlAlchemyBase, IdMixin):
         Log.updated(self)
 
     def update_msg(self, message: tgapi.Message):
+        new_msg = Msg.new_from_data2(message)
         self.msg.delete2(commit=False)
-        self.msg = Msg.new_from_data2(message)
+        self.msg = new_msg
         Log.updated(self)
 
     def update_msg_next(self, message: Union[tgapi.Message, None]):
+        msg_next = None if message is None else Msg.new_from_data2(message)
         if self.msg_next:
             self.msg_next.delete2(commit=False)
-        self.msg_next = None if message is None else Msg.new_from_data2(message)
+        self.msg_next = msg_next
         Log.updated(self)
