@@ -8,3 +8,4 @@ logs/
 /db
 /images
 secret_key_jwt.txt
+notify.txt
