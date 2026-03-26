@@ -27,6 +27,10 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
         tgapi.pinChatMessage(r.chat.id, r.message_id)
 
     txt = f"📝 Очередь {queue.name}:\n"
+    clear_at = queue.get_parsed_clear_at()
+    if clear_at:
+        (_, day), _, hour, minute = clear_at
+        txt += f"🧹 Очистка в {day} {hour:02}:{minute:02}" + "\n"
     txt += "-" * math.floor(len(txt) * 1.8) + "\n"
     qus = QueueUser.all_in_queue(queue.id)
     if len(qus) == 0:
@@ -52,8 +56,7 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
             if len(qus) > 1:
                 btns.append(("🎭 Пропуск", f"queue_pass {queue.id}"))
             btns.append(("🔴 Выйти", f"queue_exit {queue.id}"))
-            if len(qus) > 2:
-                btns.append(("💫 В конец", f"queue_end {queue.id}"))
+            btns.append(("💫 В конец", f"queue_end {queue.id}"))
 
             if loudness >= updateQueueLoudness.loud:
                 if queue.msg_next is not None:

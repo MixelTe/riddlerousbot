@@ -1,5 +1,7 @@
+from datetime import timedelta
+
 import bafser_tgapi as tgapi
-from bafser import listfind
+from bafser import listfind, get_datetime_now
 
 from bot.bot import Bot
 from bot.queue.utils import get_queue, get_queue_by_reply, update_queue_msg_if_changes, updateQueue
@@ -38,7 +40,14 @@ def queue_enter(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
 
     bot.logger.info(f"qid={queue.id} uid={bot.user.id} ({bot.user.get_username()})")
     with update_queue_msg_if_changes(bot, queue):
-        QueueUser.new(queue.id, bot.user.id)
+        now = get_datetime_now()
+        if now.month != 4 or now.day > 4:
+            QueueUser.new(queue.id, bot.user.id)
+        else:
+            qu = QueueUser.new(queue.id, bot.user.id)
+            qus = QueueUser.all_in_queue(queue.id)
+            qu.enter_date = qus[0].enter_date - timedelta(minutes=1)
+            qu.db_sess.commit()
     return "Вы встали в очередь"
 
 
@@ -65,10 +74,17 @@ def queue_pass(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
         return "Вы не в очереди"
     qui = qus.index(qu)
 
-    if qui + 1 >= len(qus):
-        return "Вы уже в конце очереди"
+    now = get_datetime_now()
+    if now.month != 4 or now.day > 4:
+        if qui + 1 >= len(qus):
+            return "Вы уже в конце очереди"
 
-    next_qu = qus[qui + 1]
+        next_qu = qus[qui + 1]
+    else:
+        if qui - 1 < 0:
+            return "Вы уже в начале очереди"
+
+        next_qu = qus[qui - 1]
 
     bot.logger.info(f"qid={queue.id} uid={bot.user.id} ({bot.user.get_username()})")
     with update_queue_msg_if_changes(bot, queue):

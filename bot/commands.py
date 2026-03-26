@@ -138,7 +138,7 @@ def all(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
         return f"Список пуст\nсоздайте его командой: /all{txt}_set"
 
     msg = tgapi.build_msg("🔔 ")
-    full_names = False
+    full_names = True
     if full_names:
         for u in users:
             utext = u.user.get_tagname()

@@ -12,6 +12,18 @@ tgapi.setup(botCls=Bot, app=app)
 run(False, init_db)
 
 if __name__ == "__main__":
+
+    def call_ping():
+        import time
+
+        from blueprints.api import ping
+
+        while True:
+            time.sleep(5)
+            with app.test_request_context():
+                ping()
+
+    tgapi.call_async_daemon(call_ping)
     tgapi.run_long_polling()
 else:
     tgapi.set_webhook()

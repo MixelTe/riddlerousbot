@@ -25,7 +25,7 @@ def queue_rename(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     name = " ".join(args)
     queue.update_name(name)
 
-    bot.logger.info(f"qid={queue.id} (\"{old_name}\" -> \"{name}\")")
+    bot.logger.info(f'qid={queue.id} ("{old_name}" -> "{name}")')
     updateQueue(bot, queue, updateQueueLoudness.quiet)
     if not s:
         return f"✏ Имя очереди {old_name} обновлено на очередь {name}"
@@ -78,10 +78,15 @@ def queue_kick(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     user = uq.user
 
     if num is not None:
-        bot.sendMessage(f"Удалить {user.get_tagname()} ?", reply_markup=tgapi.reply_markup([
-            ("🟢 Да", f"queue_kick_cmd + {queue.id} {user.id}" + (" \\s" if s else "")),
-            ("🔴 Отмена", f"queue_kick_cmd - {queue.id} {user.id}" + (" \\s" if s else "")),
-        ]))
+        bot.sendMessage(
+            f"Удалить {user.get_tagname()} ?",
+            reply_markup=tgapi.reply_markup(
+                [
+                    ("🟢 Да", f"queue_kick_cmd + {queue.id} {user.id}" + (" \\s" if s else "")),
+                    ("🔴 Отмена", f"queue_kick_cmd - {queue.id} {user.id}" + (" \\s" if s else "")),
+                ]
+            ),
+        )
         return
 
     bot.logger.info(f"qid={queue.id} uid={user.id} ({user.get_username()})")
@@ -206,3 +211,71 @@ def queue_set(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
 
     if not s:
         return f"✏ Очередь {queue.name} изменена"
+
+
+@Bot.add_command(desc_adm=("Установить время очистки", ["reset [\\s]", "<day of week> <time> [\\s]"]))
+@Bot.cmd_for_admin
+def queue_set_clear_at(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    s = silent_mode(bot, args)
+    queue = get_queue_by_reply(bot)
+
+    if len(args) == 1 and args[0] == "reset":
+        queue.update_clear_at(None)
+        bot.logger.info(f"qid={queue.id} (new clear time: None)")
+        updateQueue(bot, queue, updateQueueLoudness.quiet)
+        if s:
+            return
+        return f"✏ Отключено авто-очищение очереди {queue.name}"
+    if len(args) < 2:
+        return (
+            "Укажите время очистки\n"
+            "Usage:\n"
+            "reset time: /queue_set_clear_at reset [\\s]\n"
+            "set time: /queue_set_clear_at <day of week> <time> [\\s]\n"
+            "Params:\n"
+            "<day of week>: Понедельник | Пн | 1\n"
+            "<time>: 13:45"
+        )
+
+    day = args[0].strip().lower()
+    if day in ("понедельник", "пн", "1"):
+        dayI = 1
+    elif day in ("вторник", "вт", "2"):
+        dayI = 2
+    elif day in ("среда", "ср", "3"):
+        dayI = 3
+    elif day in ("четверг", "чт", "4"):
+        dayI = 4
+    elif day in ("пятница", "пт", "5"):
+        dayI = 5
+    elif day in ("суббота", "сб", "6"):
+        dayI = 6
+    elif day in ("воскресенье", "вс", "7"):
+        dayI = 7
+    else:
+        return "Некоректный день недели"
+
+    parts = args[1].strip().split(":")
+    if len(parts) != 2:
+        return "Время не в формате hh:mm"
+    hour, minute = parts
+    hour = parse_int(hour)
+    minute = parse_int(minute)
+    if hour is None or minute is None:
+        return "Время не в формате hh:mm"
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        return "Некоректное время"
+
+    minute = minute // 5 * 5
+    if hour == 23 and minute >= 50:
+        dayI = (dayI + 1 - 1) % 7 + 1
+        hour = 0
+        minute = minute - 50
+    queue.update_clear_at((dayI, hour, minute))
+
+    day = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"][dayI - 1]
+    clear_time = f"{day} {hour:02}:{minute:02}"
+    bot.logger.info(f"qid={queue.id} (new clear time: {clear_time})")
+    updateQueue(bot, queue, updateQueueLoudness.quiet)
+    if not s:
+        return f"✏ Время очистки очереди {queue.name} обновлено на {clear_time}"
