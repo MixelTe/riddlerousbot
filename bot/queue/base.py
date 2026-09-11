@@ -58,6 +58,7 @@ def queue_enter(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
         priority = min(max(priority, 0), len(queue.priorities or [""]) - 1)
 
         user_id = bot.user.id
+        another_user = False
         if len(args) >= 4:
             if bot.callback_query and Undefined.defined(bot.callback_query.message):
                 msg = bot.callback_query.message
@@ -66,6 +67,7 @@ def queue_enter(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
             user = User.get2(user_id)
             if not user:
                 return "user not found"
+            another_user = user.get_full_username()
 
         qu = QueueUser.get(queue.id, user_id)
         if qu is not None and qu.block == block and qu.priority == priority:
@@ -78,6 +80,9 @@ def queue_enter(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
             else:
                 QueueUser.new(queue.id, user_id, block, priority)
             rebalance_queue_blocks(queue, added_user_id=user_id)
+        if another_user:
+            bot.sendMessage(f"🟢 {another_user} теперь в очереди {queue.name}")
+            return
     return "Вы встали в очередь"
 
 
