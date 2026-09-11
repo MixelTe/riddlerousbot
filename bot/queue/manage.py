@@ -298,7 +298,7 @@ def queue_set_blocks(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     if cur_block_count != 0 and cur_block_count != len(args.lines):
         cid = Cache.put(args.lines, list[str])
         bot.sendMessage(
-            f"Сейчас {cur_block_count} {num_noun(cur_block_count, 'блок', 'блока', 'блоков')}, а новых {len(args)}. Изменение сбросит распределение по блокам. Продолжить?",
+            f"Сейчас {cur_block_count} {num_noun(cur_block_count, 'блок', 'блока', 'блоков')}, а новых {len(args.lines)}. Изменение сбросит распределение по блокам. Продолжить?",
             reply_markup=tgapi.reply_markup(
                 [
                     ("🟢 Да", f"queue_set_blocks_cmd + {queue.id} {cid}" + (" \\s" if s else "")),
@@ -379,7 +379,7 @@ def queue_set_priorities(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     if cur_priority_count != 0 and cur_priority_count != len(args.lines):
         cid = Cache.put(args.lines, list[str])
         bot.sendMessage(
-            f"Сейчас {cur_priority_count} {num_noun(cur_priority_count, 'группа', 'группы', 'групп')}, а новых {len(args)}. Изменение сбросит распределение по группам. Продолжить?",
+            f"Сейчас {cur_priority_count} {num_noun(cur_priority_count, 'группа', 'группы', 'групп')}, а новых {len(args.lines)}. Изменение сбросит распределение по группам. Продолжить?",
             reply_markup=tgapi.reply_markup(
                 [
                     ("🟢 Да", f"queue_set_priorities_cmd + {queue.id} {cid}" + (" \\s" if s else "")),

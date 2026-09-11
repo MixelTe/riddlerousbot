@@ -116,8 +116,8 @@ def queue_enter_reply_markup(queue_id: int, blocks: list[list[str]] | list[str],
             p = [s.strip() for s in p.split("|")]
         p = p[1] if len(p) > 1 else p[0]
         postfix = f" ({p})" if p else ""
-        line: list[tuple[str, str]] = []
         for i in range(len(blocks) // K + 1):
+            line: list[tuple[str, str]] = []
             for j in range(K):
                 block_i = i * K + j
                 if block_i >= len(blocks):
@@ -131,8 +131,8 @@ def queue_enter_reply_markup(queue_id: int, blocks: list[list[str]] | list[str],
                 else:
                     name = f"🟢 Встать {p}"
                 line.append((name, f"queue_enter {queue_id} {block_i} {pi}" + cmd_postfix))
-        if line:
-            reply_markup.append(line)
+            if line:
+                reply_markup.append(line)
     return reply_markup
 
 
