@@ -17,7 +17,7 @@ class Queue(SqlAlchemyBase, ObjMixin):
     name: Mapped[str] = mapped_column(String(128))
     clear_at: Mapped[int | None] = mapped_column(default=None)
     cleared_at: Mapped[datetime | None] = mapped_column(default=None)
-    max_in_block: Mapped[int] = mapped_column(JSON, default=0, server_default='0')
+    max_in_block: Mapped[int] = mapped_column(default=0, server_default='0')
     blocks: Mapped[list[str] | None] = mapped_column(JSON, default=None)
     priorities: Mapped[list[str] | None] = mapped_column(JSON, default=None)
 

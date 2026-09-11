@@ -38,7 +38,7 @@ def upgrade() -> None:
         batch_op.create_index(batch_op.f('ix_Msg_message_thread_id'), ['message_thread_id'], unique=False)
 
     with op.batch_alter_table('Queue', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('max_in_block', sa.JSON(), server_default='0', nullable=False))
+        batch_op.add_column(sa.Column('max_in_block', sa.Integer(), server_default='0', nullable=False))
         batch_op.add_column(sa.Column('blocks', sa.JSON(), nullable=True))
         batch_op.add_column(sa.Column('priorities', sa.JSON(), nullable=True))
         batch_op.create_index(batch_op.f('ix_Queue_msg_id'), ['msg_id'], unique=False)
