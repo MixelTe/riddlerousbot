@@ -41,7 +41,7 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
     if len(blocks) > 1 and queue.max_in_block > 0:
         txt += f"До {queue.max_in_block} {num_noun(queue.max_in_block, 'человека', 'человек', 'человек')} на блок" + "\n"
 
-    txt += "━" * math.floor(len(txt) * 0.55) + "\n"
+    txt += "━" * math.floor(len(queue.name) * 0.5 + 7) + "\n"
 
     qus = QueueUser.all_in_queue(queue.id)
     if len(blocks) <= 1 and len(priorities) <= 1:
@@ -49,7 +49,7 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
             txt += "Никого в очереди"
         else:
             for i, qu in enumerate(qus):
-                txt += f"{i + 1}) {qu.user.get_name()} ({qu.user.get_tagname()})\n"
+                txt += f"{i + 1}) {qu.user.get_full_username()}\n"
 
         reply_markup = [
             [
@@ -63,7 +63,10 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
         else:
             for i, qu in enumerate(qus):
                 priority_i = max(min(qu.priority, len(priorities) - 1), 0)
-                txt += f"{i + 1}) {qu.user.get_name()} ({priorities[priority_i][0]}) ({qu.user.get_tagname()})\n"
+                username = ""
+                if qu.user.username != "":
+                    username = f" (@{qu.user.username})"
+                txt += f"{i + 1}) {qu.user.get_name()} ({priorities[priority_i][0]}){username}\n"
 
         reply_markup = [
             [
@@ -83,7 +86,10 @@ def updateQueue(bot: Bot, queue: Queue, loudness=updateQueueLoudness.loud):
                         txt += "— пока никого\n"
             priority_i = max(min(qu.priority, len(priorities) - 1), 0)
             priority = f" ({priorities[priority_i][0]})" if len(priorities) > 1 else ""
-            txt += f"{i + 1}) {qu.user.get_name()}{priority} ({qu.user.get_tagname()})\n"
+            username = ""
+            if qu.user.username != "":
+                username = f" (@{qu.user.username})"
+            txt += f"{i + 1}) {qu.user.get_name()}{priority}{username}\n"
         while block_i < len(blocks) - 1:
             block_i += 1
             txt += f"\n{blocks[block_i][0]}\n"
@@ -139,18 +145,14 @@ def _update_next_msg(bot: Bot, queue: Queue, qus: list[QueueUser], loudness: int
 
     simple_queue = len(queue.blocks or []) <= 1 and len(queue.priorities or []) <= 1
     if loudness >= updateQueueLoudness.quiet:
-
-        def get_username(user: User):
-            return f"{user.get_name()} ({user.get_tagname()})"
-
         if len(qus) > 1:
-            txt_next = f"🎞 Следующие в очереди {queue.name}\n🥇-> {get_username(qus[0].user)}\n🥈-> {get_username(qus[1].user)}"
+            txt_next = f"🎞 Следующие в очереди {queue.name}\n🥇-> {qus[0].user.get_full_username()}\n🥈-> {qus[1].user.get_full_username()}"
             if len(qus) == 3:
                 txt_next += "\n💤 И ещё 1 ждущий"
             elif len(qus) > 3:
                 txt_next += f"\n💤 И ещё {len(qus) - 2} ждущих"
         else:
-            txt_next = f"🎞 Следующий в очереди {queue.name}\n🥇-> {get_username(qus[0].user)}"
+            txt_next = f"🎞 Следующий в очереди {queue.name}\n🥇-> {qus[0].user.get_full_username()}"
 
         btns: list[tuple[str, str]] = []
         if len(qus) > 1:

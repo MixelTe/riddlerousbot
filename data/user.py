@@ -9,3 +9,8 @@ class User(TgUserBase):
 
     is_friendly: Mapped[bool] = mapped_column(server_default="0", init=False)
     coins: Mapped[int] = mapped_column(server_default="100", init=False)
+
+    def get_full_username(self):
+        if self.username != "":
+            return f"{self.get_name()} (@{self.username})"
+        return f"{self.get_name()} (🥷)"

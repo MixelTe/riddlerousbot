@@ -161,11 +161,11 @@ def queue_add(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
 
     qu = QueueUser.get(queue.id, user.id)
     if qu is not None:
-        return f"🟢 {user.get_tagname()} уже в очереди {queue.name}"
+        return f"🟢 {user.get_full_username()} уже в очереди {queue.name}"
 
     bot.logger.info(f"qid={queue.id} uid={user.id} ({user.get_username()})")
     with update_queue_msg_if_changes(bot, queue):
         QueueUser.new(queue.id, user.id)
 
     if not s:
-        return f"🟢 {user.get_tagname()} теперь в очереди {queue.name}"
+        return f"🟢 {user.get_full_username()} теперь в очереди {queue.name}"

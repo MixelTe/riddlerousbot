@@ -60,11 +60,11 @@ def ping():
                 continue
             txt_one, txt_many = random.choice(queue_variants)
             if len(qus) == 1:
-                txt = f"{txt_one}: {qus[0].user.get_tagname()}"
+                txt = f"{txt_one}: {qus[0].user.get_full_username()}"
             else:
                 txt = f"{txt_many}:\n"
                 for i, qu in enumerate(qus):
-                    txt += f"{i + 1}) {qu.user.get_tagname()}\n"
+                    txt += f"{i + 1}) {qu.user.get_full_username()}\n"
             QueueUser.delete_all_in_queue(queue.id)
             updateQueue(bot, queue)
             bot.logger.info(f"autoclear qid={queue.id}")

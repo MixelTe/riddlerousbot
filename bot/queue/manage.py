@@ -81,7 +81,7 @@ def queue_kick(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
 
     if num is not None:
         bot.sendMessage(
-            f"Удалить {user.get_tagname()} ?",
+            f"Удалить {user.get_full_username()} ?",
             reply_markup=tgapi.reply_markup(
                 [
                     ("🟢 Да", f"queue_kick_cmd + {queue.id} {user.id}" + (" \\s" if s else "")),
@@ -96,7 +96,7 @@ def queue_kick(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
         uq.delete()
 
     if not s:
-        return f"🔴 {user.get_tagname()} теперь не в очереди {queue.name}"
+        return f"🔴 {user.get_full_username()} теперь не в очереди {queue.name}"
 
 
 @Bot.add_command()
@@ -131,7 +131,7 @@ def queue_kick_cmd(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
         uq.delete()
 
     if not s:
-        return f"🔴 {user.get_tagname()} теперь не в очереди {queue.name}"
+        return f"🔴 {user.get_full_username()} теперь не в очереди {queue.name}"
 
 
 @Bot.add_command(desc_adm=("Добавить на позицию в очереди", "<position> <username> [priority] [\\s]"))
@@ -190,7 +190,7 @@ def queue_add_to(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     if not s:
         p = priorities[priority].strip()
         p = f" ({p})" if p else ""
-        return f"🟢 {user.get_tagname()} теперь в очереди {queue.name} на позиции {qui + 1}{p}"
+        return f"🟢 {user.get_full_username()} теперь в очереди {queue.name} на позиции {qui + 1}{p}"
 
 
 @Bot.add_command(desc_adm=("Полностью изменить очередь", "<username> [...<username>] [\\s]"))
