@@ -1,27 +1,28 @@
 from datetime import datetime
-from typing import Optional, Union
 
 import bafser_tgapi as tgapi
-from bafser import ObjMixin, Log, SqlAlchemyBase, get_db_session
-from sqlalchemy import ForeignKey, String
+from bafser import Log, ObjMixin, SqlAlchemyBase, get_db_session
+from sqlalchemy import JSON, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from data._tables import Tables
 from data.msg import Msg
-from utils import parse_int
 
 
 class Queue(SqlAlchemyBase, ObjMixin):
     __tablename__ = Tables.Queue
 
-    msg_id: Mapped[int] = mapped_column(ForeignKey(f"{Tables.Msg}.id"))
-    msg_next_id: Mapped[Optional[int]] = mapped_column(ForeignKey(f"{Tables.Msg}.id"), init=False)
+    msg_id: Mapped[int] = mapped_column(ForeignKey(f"{Tables.Msg}.id"), index=True)
+    msg_next_id: Mapped[int | None] = mapped_column(ForeignKey(f"{Tables.Msg}.id"), init=False, index=True)
     name: Mapped[str] = mapped_column(String(128))
     clear_at: Mapped[int | None] = mapped_column(default=None)
     cleared_at: Mapped[datetime | None] = mapped_column(default=None)
+    max_in_block: Mapped[int] = mapped_column(JSON, default=0, server_default='0')
+    blocks: Mapped[list[str] | None] = mapped_column(JSON, default=None)
+    priorities: Mapped[list[str] | None] = mapped_column(JSON, default=None)
 
     msg: Mapped[Msg] = relationship(foreign_keys=[msg_id], init=False)
-    msg_next: Mapped[Optional[Msg]] = relationship(foreign_keys=[msg_next_id], init=False)
+    msg_next: Mapped[Msg | None] = relationship(foreign_keys=[msg_next_id], init=False)
 
     @staticmethod
     def new(msg_id: int, name: str):
@@ -44,30 +45,30 @@ class Queue(SqlAlchemyBase, ObjMixin):
             .first()
         )
 
-    def update_name(self, name: str):
+    def update_name(self, name: str, *, commit=True):
         self.name = name
-        Log.updated(self)
+        Log.updated(self, commit=commit)
 
-    def update_msg(self, message: tgapi.Message):
+    def update_msg(self, message: tgapi.Message, *, commit=True):
         new_msg = Msg.new_from_data2(message)
         self.msg.delete2(commit=False)
         self.msg = new_msg
-        Log.updated(self)
+        Log.updated(self, commit=commit)
 
-    def update_msg_next(self, message: Union[tgapi.Message, None]):
+    def update_msg_next(self, message: tgapi.Message | None, *, commit=True):
         msg_next = None if message is None else Msg.new_from_data2(message)
         if self.msg_next:
             self.msg_next.delete2(commit=False)
         self.msg_next = msg_next
-        Log.updated(self)
+        Log.updated(self, commit=commit)
 
-    def update_clear_at(self, clear_at: tuple[int, int, int] | None):
+    def update_clear_at(self, clear_at: tuple[int, int, int] | None, *, commit=True):
         if not clear_at:
             self.clear_at = None
         else:
             day, hour, minute = clear_at
             self.clear_at = day * 10000 + hour * 100 + minute
-        Log.updated(self)
+        Log.updated(self, commit=commit)
 
     def get_parsed_clear_at(self):
         if not self.clear_at:
@@ -88,3 +89,15 @@ class Queue(SqlAlchemyBase, ObjMixin):
             ("Воскресенье", "Вс"),
         ][dayI - 1]
         return day, dayI, hour, minute
+
+    def update_max_in_block(self, max_in_block: int, *, commit=True):
+        self.max_in_block = max_in_block
+        Log.updated(self, commit=commit)
+
+    def update_blocks(self, blocks: list[str], *, commit=True):
+        self.blocks = blocks
+        Log.updated(self, commit=commit)
+
+    def update_priorities(self, priorities: list[str], *, commit=True):
+        self.priorities = priorities
+        Log.updated(self, commit=commit)

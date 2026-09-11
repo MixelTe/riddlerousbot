@@ -1,15 +1,17 @@
+import uuid
 from datetime import timedelta
 
 import bafser_tgapi as tgapi
 from bafser import Undefined, get_datetime_now, listfind
 
 from bot.bot import Bot
-from bot.queue.utils import get_queue_by_reply, update_queue_msg_if_changes, updateQueue, updateQueueLoudness
+from bot.queue.utils import get_arg_int, get_queue_by_reply, rebalance_queue_blocks, update_queue_msg_if_changes, updateQueue, updateQueueLoudness
 from bot.utils import get_users_from_msg, silent_mode
+from data.cache import Cache
 from data.queue import Queue
 from data.queue_user import QueueUser
 from data.user import User
-from utils import parse_int
+from utils import num_noun, parse_int
 
 
 @Bot.add_command(desc_adm=("Переименновать очередь", "<new_name> [\\s]"))
@@ -112,13 +114,8 @@ def queue_kick_cmd(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     if args[0] == "-":
         return
 
-    queue_id = parse_int(args[1])
-    user_id = parse_int(args[2])
-
-    if queue_id is None:
-        return "queue_id is None"
-    if user_id is None:
-        return "user_id is None"
+    queue_id = get_arg_int(args, 1, "queue_id is not int")
+    user_id = get_arg_int(args, 2, "user_id is not int")
 
     queue = Queue.get(bot.db_sess, queue_id)
     if queue is None:
@@ -137,24 +134,28 @@ def queue_kick_cmd(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
         return f"🔴 {user.get_tagname()} теперь не в очереди {queue.name}"
 
 
-@Bot.add_command(desc_adm=("Добавить на позицию в очереди", "<position> <username> [\\s]"))
+@Bot.add_command(desc_adm=("Добавить на позицию в очереди", "<position> <username> [priority] [\\s]"))
 @Bot.cmd_for_admin
 def queue_add_to(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     s = silent_mode(bot, args)
     queue = get_queue_by_reply(bot)
 
     if len(args) < 2:
-        return "Укажите позицию для вставки и ник человека\nUsage: /queue_add_to <position> <username> [\\s]"
+        return "Укажите позицию для вставки и ник человека\nUsage: /queue_add_to <position> <username> [priority] [\\s]"
 
-    pos = parse_int(args[0])
-    if pos is None:
-        return "Позиция для вставки должна быть целым числом"
+    pos = get_arg_int(args, 0, "Позиция для вставки должна быть целым числом")
     pos -= 1
 
     username = args[1]
     user = User.get_by_username(bot.db_sess, username)
     if not user:
         return "👻 Этот пользователь не знаком боту (если в имени ошибки нет, пускай он хотя бы раз повзаимодействует с ботом)"
+
+    priority = 0 if len(args) < 3 else parse_int(args[2])
+    if priority is None:
+        return "Приоритет для вставки должен быть целым числом"
+    priorities = queue.priorities or [""]
+    priority = min(max(priority, 0), len(priorities) - 1)
 
     with update_queue_msg_if_changes(bot, queue):
         qus = QueueUser.all_in_queue(queue.id)
@@ -168,25 +169,31 @@ def queue_add_to(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
             if qui < pos:
                 if qui >= len(qus) - 1:
                     break
+                qu.block = qus[qui + 1].block
                 qus[qui], qus[qui + 1] = qus[qui + 1], qus[qui]
                 QueueUser.swap_enter_date(qus[qui], qus[qui + 1], commit=False)
                 qui += 1
             elif qui > pos:
                 if qui <= 0:
                     break
+                qu.block = qus[qui - 1].block
                 qus[qui], qus[qui - 1] = qus[qui - 1], qus[qui]
                 QueueUser.swap_enter_date(qus[qui], qus[qui - 1], commit=False)
                 qui -= 1
             else:
                 break
+        qu.priority = priority
+        rebalance_queue_blocks(queue, qus)
         bot.db_sess.commit()
 
     bot.logger.info(f"qid={queue.id} uid={user.id} ({user.get_username()}) qui={qui}")
     if not s:
-        return f"🟢 {user.get_tagname()} теперь в очереди {queue.name} на позиции {qui + 1}"
+        p = priorities[priority].strip()
+        p = f" ({p})" if p else ""
+        return f"🟢 {user.get_tagname()} теперь в очереди {queue.name} на позиции {qui + 1}{p}"
 
 
-@Bot.add_command(desc_adm=("Полностью изменить очередь", "<username> [...<username>]"))
+@Bot.add_command(desc_adm=("Полностью изменить очередь", "<username> [...<username>] [\\s]"))
 @Bot.cmd_for_admin
 def queue_set(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     s = silent_mode(bot, args)
@@ -279,3 +286,145 @@ def queue_set_clear_at(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     updateQueue(bot, queue, updateQueueLoudness.quiet)
     if not s:
         return f"✏ Время очистки очереди {queue.name} обновлено на {clear_time}"
+
+
+@Bot.add_command(desc_adm=("Установить блоки (| - для сокр.)", "[...<blockname>] [\\s]"))
+@Bot.cmd_for_admin
+def queue_set_blocks(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    s = silent_mode(bot, args)
+    queue = get_queue_by_reply(bot)
+
+    cur_block_count = len(queue.blocks) if queue.blocks else 0
+    if cur_block_count != 0 and cur_block_count != len(args.lines):
+        cid = Cache.put(args.lines, list[str])
+        bot.sendMessage(
+            f"Сейчас {cur_block_count} {num_noun(cur_block_count, 'блок', 'блока', 'блоков')}, а новых {len(args)}. Изменение сбросит распределение по блокам. Продолжить?",
+            reply_markup=tgapi.reply_markup(
+                [
+                    ("🟢 Да", f"queue_set_blocks_cmd + {queue.id} {cid}" + (" \\s" if s else "")),
+                    ("🔴 Отмена", f"queue_set_blocks_cmd - {queue.id} {cid}" + (" \\s" if s else "")),
+                ]
+            ),
+        )
+        return
+
+    queue_set_blocks_run(bot, queue, args.lines, s)
+
+
+@Bot.add_command()
+@Bot.cmd_for_admin
+def queue_set_blocks_cmd(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    s = silent_mode(bot, args)
+
+    if len(args) < 3:
+        return "not enought args"
+
+    if bot.callback_query and Undefined.defined(bot.callback_query.message):
+        msg = bot.callback_query.message
+        tgapi.deleteMessage(msg.chat.id, msg.message_id)
+
+    if args[0] == "-":
+        Cache.pop(args[2], list[str])
+        return
+
+    queue_id = get_arg_int(args, 1, "queue_id is not int")
+    queue = Queue.get(bot.db_sess, queue_id)
+    if queue is None:
+        return "queue not found"
+
+    lines = Cache.pop(args[2], list[str])
+    if lines is None:
+        return "cached lines not found"
+
+    queue_set_blocks_run(bot, queue, lines, s)
+
+
+def queue_set_blocks_run(bot: Bot, queue: Queue, blocks: list[str], s: bool):
+    with update_queue_msg_if_changes(bot, queue):
+        queue.update_blocks(blocks, commit=False)
+        QueueUser.update_block_for_all_in_queue(queue.id, len(blocks))
+        rebalance_queue_blocks(queue)
+
+    bot.logger.info(f"qid={queue.id} (new blocks: {blocks})")
+    if not s:
+        return f"✏ Блоки очереди {queue.name} обновлены"
+
+
+@Bot.add_command(desc_adm=("Установить макс. кол-во человек в блоке", "<number> [\\s]"))
+@Bot.cmd_for_admin
+def queue_set_max_in_block(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    s = silent_mode(bot, args)
+    queue = get_queue_by_reply(bot)
+
+    if len(args) != 1:
+        return "Укажите количество\nUsage: /queue_set_max_in_block <number> [\\s]"
+
+    count = get_arg_int(args, 0, "Количество должно быть целым числом")
+
+    with update_queue_msg_if_changes(bot, queue):
+        queue.update_max_in_block(count)
+        rebalance_queue_blocks(queue)
+
+    if not s:
+        return f"✏ Максимальное количество человек в блоке очереди {queue.name} обновлено на {count}"
+
+
+@Bot.add_command(desc_adm=("Установить приоритеты (| - для сокр.)", "[...<groupname>] [\\s]"))
+@Bot.cmd_for_admin
+def queue_set_priorities(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    s = silent_mode(bot, args)
+    queue = get_queue_by_reply(bot)
+
+    cur_priority_count = len(queue.priorities) if queue.priorities else 0
+    if cur_priority_count != 0 and cur_priority_count != len(args.lines):
+        cid = Cache.put(args.lines, list[str])
+        bot.sendMessage(
+            f"Сейчас {cur_priority_count} {num_noun(cur_priority_count, 'группа', 'группы', 'групп')}, а новых {len(args)}. Изменение сбросит распределение по группам. Продолжить?",
+            reply_markup=tgapi.reply_markup(
+                [
+                    ("🟢 Да", f"queue_set_priorities_cmd + {queue.id} {cid}" + (" \\s" if s else "")),
+                    ("🔴 Отмена", f"queue_set_priorities_cmd - {queue.id} {cid}" + (" \\s" if s else "")),
+                ]
+            ),
+        )
+        return
+
+    queue_set_priorities_run(bot, queue, args.lines, s)
+
+
+@Bot.add_command()
+@Bot.cmd_for_admin
+def queue_set_priorities_cmd(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
+    s = silent_mode(bot, args)
+
+    if len(args) < 3:
+        return "not enought args"
+
+    if bot.callback_query and Undefined.defined(bot.callback_query.message):
+        msg = bot.callback_query.message
+        tgapi.deleteMessage(msg.chat.id, msg.message_id)
+
+    if args[0] == "-":
+        return
+
+    queue_id = get_arg_int(args, 1, "queue_id is not int")
+    queue = Queue.get(bot.db_sess, queue_id)
+    if queue is None:
+        return "queue not found"
+
+    lines = Cache.pop(args[2], list[str])
+    if lines is None:
+        return "cached lines not found"
+
+    queue_set_priorities_run(bot, queue, lines, s)
+
+
+def queue_set_priorities_run(bot: Bot, queue: Queue, priorities: list[str], s: bool):
+    with update_queue_msg_if_changes(bot, queue):
+        queue.update_priorities(priorities, commit=False)
+        QueueUser.update_priority_for_all_in_queue(queue.id, len(priorities))
+        rebalance_queue_blocks(queue)
+
+    bot.logger.info(f"qid={queue.id} (new priorities: {priorities})")
+    if not s:
+        return f"✏ Группы очереди {queue.name} обновлены"
