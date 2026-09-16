@@ -58,6 +58,7 @@ def queue_enter(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
         priority = min(max(priority, 0), len(queue.priorities or [""]) - 1)
 
         user_id = bot.user.id
+        log_username = bot.user.get_username()
         another_user = False
         if len(args) >= 4:
             if bot.callback_query and Undefined.defined(bot.callback_query.message):
@@ -67,13 +68,14 @@ def queue_enter(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
             user = User.get2(user_id)
             if not user:
                 return "user not found"
+            log_username = user.get_username()
             another_user = user.get_full_username()
 
         qu = QueueUser.get(queue.id, user_id)
-        if qu is not None and qu.block == block and qu.priority == priority:
+        if qu is not None and (another_user or (qu.block == block and qu.priority == priority)):
             return "Уже в очереди"
 
-        bot.logger.info(f"qid={queue.id} uid={user_id} ({bot.user.get_username()}) {block=} {priority=}")
+        bot.logger.info(f"qid={queue.id} uid={user_id} ({log_username}) {block=} {priority=}")
         with update_queue_msg_if_changes(bot, queue):
             if qu:
                 qu.update(block, priority)
@@ -117,6 +119,9 @@ def queue_pass(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     if next_qu.block != qu.block:
         return "Вы уже в конце блока"
 
+    if next_qu.priority != qu.priority:
+        return "Нельзя пропустить человека с другим приоритетом"
+
     bot.logger.info(f"qid={queue.id} uid={bot.user.id} ({bot.user.get_username()})")
     with update_queue_msg_if_changes(bot, queue):
         QueueUser.swap_enter_date(qu, next_qu)
@@ -156,6 +161,10 @@ def queue_add(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     priorities = queue.priorities if queue.priorities else [""]
     simple_queue = len(blocks) <= 1 and len(priorities) <= 1
 
+    qu = QueueUser.get(queue.id, user.id)
+    if qu is not None:
+        return f"🟢 {user.get_full_username()} уже в очереди {queue.name}"
+
     if not simple_queue:
         reply_markup = queue_enter_reply_markup(queue.id, blocks, priorities, user.id)
         bot.sendMessage(
@@ -163,10 +172,6 @@ def queue_add(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
             reply_markup=tgapi.reply_markup(*reply_markup),
         )
         return
-
-    qu = QueueUser.get(queue.id, user.id)
-    if qu is not None:
-        return f"🟢 {user.get_full_username()} уже в очереди {queue.name}"
 
     bot.logger.info(f"qid={queue.id} uid={user.id} ({user.get_username()})")
     with update_queue_msg_if_changes(bot, queue):

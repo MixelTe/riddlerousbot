@@ -365,6 +365,7 @@ def queue_set_max_in_block(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
         queue.update_max_in_block(count)
         rebalance_queue_blocks(queue)
 
+    bot.logger.info(f"qid={queue.id} (new max in block: {count})")
     if not s:
         return f"✏ Максимальное количество человек в блоке очереди {queue.name} обновлено на {count}"
 
