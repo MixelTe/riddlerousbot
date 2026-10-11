@@ -33,7 +33,7 @@ class TicTacToe(SqlAlchemyBase, IdMixin):
 
     @staticmethod
     def new_by_message(message: tgapi.Message, player1_id: int, player2_id: int | None = None):
-        msg = Msg.new_from_data2(message)
+        msg = Msg.new_from_data(message)
         return TicTacToe.new(msg.id, player1_id, player2_id)
 
     @staticmethod

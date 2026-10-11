@@ -65,7 +65,7 @@ def queue_enter(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
                 msg = bot.callback_query.message
                 tgapi.deleteMessage(msg.chat.id, msg.message_id)
             user_id = get_arg_int(args, 3, "user_id is not int")
-            user = User.get2(user_id)
+            user = User.get(user_id)
             if not user:
                 return "user not found"
             log_username = user.get_username()
@@ -152,7 +152,7 @@ def queue_add(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
 
     queue = get_queue_by_reply(bot)
     username = args[0]
-    user = User.get_by_username(bot.db_sess, username)
+    user = User.get_by_username(username)
 
     if not user:
         return f"👻 Этот пользователь ({username}) не знаком боту (если в имени ошибки нет, пускай он хотя бы раз повзаимодействует с ботом)"

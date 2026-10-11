@@ -23,7 +23,7 @@ def os418_answer(bot: Bot):
     if bot.message.chat.type != "private" and bot.sender.username != "MixelTe":
         return
 
-    msg = Msg.get_by_message_id(bot.db_sess, bot.message.reply_to_message.message_id)
+    msg = Msg.get_by_message_id(bot.message.reply_to_message.message_id)
     if not msg or not msg.reply_to:
         return
     msg = msg.reply_to
@@ -43,14 +43,14 @@ def os418_question(bot: Bot):
         return
     if bot.message.reply_to_message.sender.username != tgapi.get_bot_name()[1:]:
         return
-    adm = User.get_by_username(bot.db_sess, "MixelTe")
+    adm = User.get_by_username("MixelTe")
     if not adm:
         return
     ok, msg = tgapi.forwardMessage(adm.id_tg, None, bot.message.chat.id, bot.message.message_id)
     if not ok:
         return
-    msg_orig = Msg.new_from_data(bot.user, bot.message)
-    Msg.new_from_data(bot.user, msg, msg_orig.id)
+    msg_orig = Msg.new_from_data(bot.message)
+    Msg.new_from_data(msg, msg_orig.id)
 
 
 def os418_curse(bot: Bot):

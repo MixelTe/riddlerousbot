@@ -21,7 +21,7 @@ def tic_tac_toe(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     if len(args) == 0:
         msgb.text("первого встречного!")
     else:
-        opponent = User.get_by_username(bot.db_sess, args[0])
+        opponent = User.get_by_username(args[0])
         if not opponent:
             return f"👻 Этот пользователь ({args[0]}) не знаком боту (если в имени ошибки нет, пускай он хотя бы раз повзаимодействует с ботом)"
         oname = opponent.get_username()
@@ -104,7 +104,7 @@ def get_game(bot: Bot, args: tgapi.BotCmdArgs):
     if id is None:
         tgapi.raiseBotAnswer("id is NaN")
 
-    game = TicTacToe.get(bot.db_sess, id, for_update=True)
+    game = TicTacToe.get(id, for_update=True)
     if game is None:
         tgapi.raiseBotAnswer(f"game with id={id} doesnt exist")
 

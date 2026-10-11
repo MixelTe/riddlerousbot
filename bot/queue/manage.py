@@ -117,7 +117,7 @@ def queue_kick_cmd(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     queue_id = get_arg_int(args, 1, "queue_id is not int")
     user_id = get_arg_int(args, 2, "user_id is not int")
 
-    queue = Queue.get(bot.db_sess, queue_id)
+    queue = Queue.get(queue_id)
     if queue is None:
         return "queue not found"
 
@@ -147,7 +147,7 @@ def queue_add_to(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
     pos -= 1
 
     username = args[1]
-    user = User.get_by_username(bot.db_sess, username)
+    user = User.get_by_username(username)
     if not user:
         return "👻 Этот пользователь не знаком боту (если в имени ошибки нет, пускай он хотя бы раз повзаимодействует с ботом)"
 
@@ -328,7 +328,7 @@ def queue_set_blocks_cmd(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
         return
 
     queue_id = get_arg_int(args, 1, "queue_id is not int")
-    queue = Queue.get(bot.db_sess, queue_id)
+    queue = Queue.get(queue_id)
     if queue is None:
         return "queue not found"
 
@@ -409,7 +409,7 @@ def queue_set_priorities_cmd(bot: Bot, args: tgapi.BotCmdArgs, **_: str):
         return
 
     queue_id = get_arg_int(args, 1, "queue_id is not int")
-    queue = Queue.get(bot.db_sess, queue_id)
+    queue = Queue.get(queue_id)
     if queue is None:
         return "queue not found"
 

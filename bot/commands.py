@@ -101,7 +101,7 @@ def all_check(bot: Bot, args: tgapi.BotCmdArgs, txt: str, **_: str):
     ok, msg = bot.sendMessage(msg, reply_markup=reply_markup)
     if not ok:
         return "Error!"
-    msg = Msg.new_from_data(bot.user, msg)
+    msg = Msg.new_from_data(msg)
     for user in nof_users:
         Checker.new(msg, user, cmd=txt, commit=False)
     bot.db_sess.commit()

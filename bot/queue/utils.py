@@ -186,7 +186,7 @@ def get_queue(bot: Bot, args: tgapi.BotCmdArgs) -> Queue:
     if id is None:
         tgapi.raiseBotAnswer("id is NaN")
 
-    queue = Queue.get(bot.db_sess, id)
+    queue = Queue.get(id)
     if queue is None:
         tgapi.raiseBotAnswer(f"queue with id={id} doesnt exist")
 

@@ -35,7 +35,7 @@ class Curse(SqlAlchemyBase, IdMixin):
 
     def delete(self, commit=True):
         self.db_sess.delete(self)
-        Log.deleted(self, None, [
+        Log.deleted(self, changes=[
             ("type", self.type),
             ("user_id", self.user_id),
             ("end_date", self.end_date),

@@ -3,7 +3,7 @@ import random
 from datetime import timezone
 
 import bafser_tgapi as tgapi
-from bafser import Undefined, get_datetime_now, get_db_session
+from bafser import Undefined, get_datetime_now
 from flask import Blueprint, g
 
 from bot.bot import Bot, User
@@ -24,10 +24,10 @@ def ping():
         Cache.delete_stale()
     except Exception:
         logging.exception("Failed to delete stale cache")
-    queues = Queue.query2().filter(Queue.clear_at >= day, Queue.clear_at <= day + curtime).all()
+    queues = Queue.query().filter(Queue.clear_at >= day, Queue.clear_at <= day + curtime).all()
     if not queues:
         return "ok"
-    g.user = User.get_admin(get_db_session())
+    g.user = User.get_admin()
     for queue in queues:
         clear_at = queue.get_parsed_clear_at()
         if not clear_at:

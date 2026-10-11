@@ -32,7 +32,7 @@ class Queue(SqlAlchemyBase, ObjMixin):
 
     @staticmethod
     def new_by_message(message: tgapi.Message, name: str):
-        msg = Msg.new_from_data2(message)
+        msg = Msg.new_from_data(message)
         return Queue.new(msg.id, name)
 
     @staticmethod
@@ -50,15 +50,15 @@ class Queue(SqlAlchemyBase, ObjMixin):
         Log.updated(self, commit=commit)
 
     def update_msg(self, message: tgapi.Message, *, commit=True):
-        new_msg = Msg.new_from_data2(message)
-        self.msg.delete2(commit=False)
+        new_msg = Msg.new_from_data(message)
+        self.msg.delete(commit=False)
         self.msg = new_msg
         Log.updated(self, commit=commit)
 
     def update_msg_next(self, message: tgapi.Message | None, *, commit=True):
-        msg_next = None if message is None else Msg.new_from_data2(message)
+        msg_next = None if message is None else Msg.new_from_data(message)
         if self.msg_next:
-            self.msg_next.delete2(commit=False)
+            self.msg_next.delete(commit=False)
         self.msg_next = msg_next
         Log.updated(self, commit=commit)
 

@@ -43,7 +43,7 @@ class Cache(SqlAlchemyBase, IdMixin):
         if not id:
             return None
 
-        cache = Cache.get2(id)
+        cache = Cache.get(id)
         if not cache:
             return None
 

@@ -31,7 +31,7 @@ class Checker(SqlAlchemyBase, IdMixin):
 
     def delete(self, commit=True):
         self.db_sess.delete(self)
-        Log.deleted(self, None, [
+        Log.deleted(self, changes=[
             ("msg_id", self.msg_id),
             ("user_id", self.user_id),
         ], commit=commit)

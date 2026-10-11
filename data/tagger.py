@@ -33,11 +33,11 @@ class Tagger(SqlAlchemyBase, IdMixin):
             user_ids.append(user.id)
             tag = Tagger(cmd=cmd, chat_id=chat_id, user_id=user.id)
             bot.db_sess.add(tag)
-        Log.updated(Tagger.FakeForLog(), bot.user, [  # pyright: ignore[reportArgumentType]
+        Log.updated(Tagger.FakeForLog(), changes=[  # pyright: ignore[reportArgumentType]
             ("cmd", cmd, cmd),
             ("chat_id", chat_id, chat_id),
             ("user_id", [], user_ids),
-        ])
+        ], db_sess=bot.db_sess)
 
     @staticmethod
     def get_by_value(cmd: str, chat_id: int, user_id: int):
